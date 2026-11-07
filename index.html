@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Guida al Round — Arkham Horror LCG</title>
-<meta name="version" content="0.0.5">
+<meta name="version" content="0.0.6">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -21,6 +21,7 @@ a{color:var(--gold2)}
 header{position:sticky;top:0;z-index:20;background:rgba(12,17,15,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) 12px 8px}
 .hrow{display:flex;align-items:center;gap:8px;max-width:760px;margin:0 auto}
 .hrow h1{font-size:1rem;flex:1;color:var(--gold)}
+.ver{font-family:Inter,system-ui,sans-serif;font-size:.68rem;font-weight:600;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:1px 7px;margin-left:4px;vertical-align:middle;letter-spacing:0}
 main{max-width:760px;margin:0 auto;padding:12px 12px calc(96px + env(safe-area-inset-bottom))}
 nav{position:fixed;bottom:0;left:0;right:0;z-index:20;background:#0f1613;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom)}
 nav button{background:none;border:0;border-radius:0;color:var(--mut);padding:10px 4px 12px;font-size:.78rem;min-height:56px;display:flex;flex-direction:column;align-items:center;gap:3px}
@@ -135,7 +136,7 @@ td.tkcell{white-space:nowrap}td.tkcell span{margin-left:8px;font-weight:600;vert
 </head>
 <body>
 <header><div class="hrow">
-  <h1>Arkham · Guida al Round</h1>
+  <h1>Arkham · Guida al Round <span id="ver" class="ver"></span></h1>
   <button class="sm ghost" data-a="undo" id="undoBtn" title="Annulla ultima modifica">↶ Annulla</button>
   <button class="sm ghost" data-a="menu">☰</button>
 </div></header>
@@ -145,7 +146,7 @@ td.tkcell{white-space:nowrap}td.tkcell span{margin-left:8px;font-weight:600;vert
 
 <script>
 /* ===================== DATI ===================== */
-const APP_VERSION='0.0.5';
+const APP_VERSION='0.0.6';
 const LS='ahlcg-guida-round-v1';
 const INV={
   roland:{n:'Roland Banks',c:'Guardiano',hp:9,san:5,sk:[3,3,4,2],ab:'Reazione: dopo che hai sconfitto un nemico, scopri 1 indizio nel tuo luogo (1 volta per round).',es:'+1 per ogni indizio nel tuo luogo.'},
@@ -203,6 +204,7 @@ function newId(){return 'p'+Date.now().toString(36)+Math.random().toString(36).s
 function defaultName(scen,names){const d=new Date();return `${SCEN[scen].n.replace(/^[IV]+ · /,'')} — ${names.join(', ')} — ${d.toLocaleDateString('it-IT')}`}
 let S=load()||{setup:freshSetup(),game:null,tab:'round',draw:null};
 S.drawing=false;S.justDrew=false;
+document.getElementById('ver').textContent='v'+APP_VERSION;
 if(S.game&&!S.game.id){S.game.id=newId();S.game.name=defaultName(S.game.scen,S.game.invs.map(v=>v.name));}
 let UNDO=[];
 const G=()=>S.game;
@@ -677,7 +679,7 @@ const RULES=`<h2 style="margin-bottom:10px">Regole rapide</h2>
 <li>Galleria delle vittorie: nemici e sventure con Vittoria, più i <b>luoghi con Vittoria in gioco, aperti e senza indizi</b>.</li>
 <li>XP = punti Vittoria + bonus della risoluzione.</li>
 <li>Carta nuova: XP pari al livello (minimo 1). Miglioramento: differenza di livello.</li></ul></details>
-<p class="small muted">Fonte: Compendio delle Regole e Guida alla Campagna. Il testo delle carte prevale sempre.</p><p class="small muted" style="text-align:center">Versione ${APP_VERSION}</p>`;
+<p class="small muted">Fonte: Compendio delle Regole e Guida alla Campagna. Il testo delle carte prevale sempre.</p>`;
 
 /* ===================== MODALE ===================== */
 function openModal(html){document.getElementById('sheet').innerHTML=html;document.getElementById('modal').classList.add('on');}
@@ -721,7 +723,7 @@ function openMenu(){
   ${g?`<button data-a="exportGame">Esporta questa partita…</button><button data-a="endScen">Fine scenario…</button>`:''}
   <button data-a="newGame">${g?'Nuova partita (questa resta salvata)':'Nuova partita'}</button>
   <button class="ghost" data-a="close">Chiudi</button></div>
-  <p class="small muted" style="margin-top:12px">Le partite si salvano da sole su questo dispositivo. Per continuarle altrove usa «Esporta».</p><p class="small muted" style="text-align:center;margin-top:8px">Versione ${APP_VERSION}</p>`);
+  <p class="small muted" style="margin-top:12px">Le partite si salvano da sole su questo dispositivo. Per continuarle altrove usa «Esporta».</p>`);
 }
 function openEnd(){
   const g=G();

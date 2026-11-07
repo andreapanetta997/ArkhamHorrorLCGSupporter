@@ -1,6 +1,6 @@
 # Arkham Horror LCG Supporter
 
-Versione attuale: **0.0.5** — vedi [CHANGELOG.md](CHANGELOG.md).
+Versione attuale: **0.0.6** — vedi [CHANGELOG.md](CHANGELOG.md).
 
 Web app (un solo file `index.html`, nessuna dipendenza) per guidare passo passo una partita ad **Arkham Horror: Il Gioco di Carte** — Set Base, campagna *La Notte della Zelota*.
 
