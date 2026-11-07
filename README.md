@@ -10,6 +10,7 @@ Web app (un solo file `index.html`, nessuna dipendenza) per guidare passo passo 
 - **Sacchetto del caos** per difficoltà, effetti dei simboli dello scenario e pesca di prova.
 - **Regole rapide** e promemoria degli Obblighi di trama/capitolo, senza spoiler sui retro.
 - Annulla, registro eventi, salvataggio automatico nel browser.
+- **Carica partita**: elenco delle partite salvate sul dispositivo, rinomina, elimina, esporta/importa tramite codice o file `.arkham.json` per continuare su un altro dispositivo.
 
 ## Uso
 Apri `index.html` nel browser (telefono o PC). Con GitHub Pages attivo sul branch `main` è raggiungibile online.

@@ -172,8 +172,16 @@ const PH=['Miti','Investigatori','Nemici','Gestione'];
 /* ===================== STATO ===================== */
 function freshSetup(){return {scen:'adunanza',diff:'standard',invs:[{pick:'roland',player:'',tf:0,tm:0},{pick:'daisy',player:'',tf:0,tm:0}],lead:0,house:'piedi',priest:false,fuggiti:0,midnight:false,customD:8};}
 function load(){try{const s=localStorage.getItem(LS);return s?JSON.parse(s):null}catch(e){return null}}
-function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+const LSS='ahlcg-salvataggi-v1';
+function loadSaves(){try{return JSON.parse(localStorage.getItem(LSS)||'[]')}catch(e){return[]}}
+function writeSaves(a){try{localStorage.setItem(LSS,JSON.stringify(a))}catch(e){}}
+function upsertSave(g){const a=loadSaves();const rec={id:g.id,name:g.name,at:Date.now(),game:g};const i=a.findIndex(x=>x.id===g.id);
+  if(i>=0)a[i]=rec;else a.unshift(rec);a.sort((x,y)=>y.at-x.at);writeSaves(a.slice(0,40));}
+function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}if(S.game)upsertSave(S.game);}
+function newId(){return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function defaultName(scen,names){const d=new Date();return `${SCEN[scen].n.replace(/^[IV]+ · /,'')} — ${names.join(', ')} — ${d.toLocaleDateString('it-IT')}`}
 let S=load()||{setup:freshSetup(),game:null,tab:'round',draw:null};
+if(S.game&&!S.game.id){S.game.id=newId();S.game.name=defaultName(S.game.scen,S.game.invs.map(v=>v.name));}
 let UNDO=[];
 const G=()=>S.game;
 function mut(fn){if(S.game){UNDO.push(JSON.stringify(S.game));if(UNDO.length>80)UNDO.shift();}fn();save();render();}
@@ -368,6 +376,7 @@ function startGame(){
       return {id:r.pick,name:custom?(r.cname||'Investigatore'):d.n,player:r.player||'',hp:custom?(+r.chp||7):d.hp,san:custom?(+r.csan||7):d.san,
         dmg:+r.tf||0,hor:+r.tm||0,res:5,clues:0,used:0,maxA:3,tome:0,turnDone:false,skidsUsed:false,out:false};})};
   if(s.scen==='divoratore'){const f=+s.fuggiti;g.doom=f==0?0:f<=2?1:f<=4?2:3;}
+  g.id=newId();g.name=(s.name||'').trim()||defaultName(s.scen,g.invs.map(v=>v.name));s.name='';
   log(g,'Partita iniziata: '+SCEN[g.scen].n+' · '+DIFF[g.diff].n);
   UNDO=[];S.game=g;S.tab='round';save();render();window.scrollTo(0,0);
 }
@@ -410,11 +419,41 @@ const H={
   start(){startGame();},
   /* menu */
   close(){closeModal();},
-  newGame(){closeModal();S.game=null;UNDO=[];save();render();window.scrollTo(0,0);},
+  newGame(){closeModal();if(S.game)upsertSave(S.game);S.game=null;UNDO=[];save();render();window.scrollTo(0,0);},
+  loadSave(e){const r=loadSaves().find(x=>x.id===e.dataset.v);if(!r)return;if(S.game)upsertSave(S.game);
+    S.game=r.game;UNDO=[];S.tab='round';closeModal();save();render();window.scrollTo(0,0);},
+  delSave(e){const r=loadSaves().find(x=>x.id===e.dataset.v);if(!r)return;
+    openModal(`<h2 style="margin-bottom:8px">Eliminare la partita?</h2><p>${esc(r.name)}</p><p class="small muted">Non si può annullare.</p>
+    <div class="navbtns"><button data-a="close">No</button><button class="primary" data-a="delSaveOk" data-v="${r.id}">Elimina</button></div>`);},
+  delSaveOk(e){writeSaves(loadSaves().filter(x=>x.id!==e.dataset.v));closeModal();render();},
+  loadMenu(){openLoad();},
+  exportGame(){openExport(G());},
+  exportSave(e){const r=loadSaves().find(x=>x.id===e.dataset.v);if(r)openExport(r.game);},
+  copyCode(){const t=document.getElementById('code');t.select();
+    const done=()=>{document.getElementById('copied').textContent='Copiato!';};
+    try{navigator.clipboard.writeText(t.value).then(done,()=>{try{document.execCommand('copy');done();}catch(_){}});}catch(_){try{document.execCommand('copy');done();}catch(__){}}},
+  dlFile(){try{const g=JSON.parse(decodeCode(document.getElementById('code').value));
+    const b=new Blob([JSON.stringify(g,null,1)],{type:'application/json'});const a=document.createElement('a');
+    a.href=URL.createObjectURL(b);a.download=(g.name||'partita').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'_')+'.arkham.json';document.body.appendChild(a);a.click();a.remove();}catch(e){}},
+  importOpen(){openImport();},
+  importDo(){importText(document.getElementById('imp').value);},
+  rename(){const g=G(),v=document.getElementById('renameIn').value.trim();if(v){g.name=v;save();}closeModal();render();}
+};
+function encodeCode(g){return btoa(unescape(encodeURIComponent(JSON.stringify(g))));}
+function decodeCode(t){t=t.trim();if(t.startsWith('{'))return t;return decodeURIComponent(escape(atob(t.replace(/\s+/g,''))));}
+function importText(t){
+  const msg=document.getElementById('impMsg');
+  try{const g=JSON.parse(decodeCode(t));if(!g||!g.invs||!g.scen||!SCEN[g.scen])throw 0;
+    if(!g.id)g.id=newId();if(!g.name)g.name=defaultName(g.scen,g.invs.map(v=>v.name));
+    if(S.game)upsertSave(S.game);S.game=g;UNDO=[];S.tab='round';closeModal();save();render();window.scrollTo(0,0);}
+  catch(e){if(msg)msg.textContent='Codice o file non valido.';}
+}
+const H2={
   endScen(){openEnd();},
   nextScen(){const g=G();const nx={adunanza:'maschere',maschere:'divoratore'}[g.scen]||g.scen;
     S.setup.scen=nx;S.setup.diff=g.diff;S.setup.lead=g.lead;closeModal();S.game=null;UNDO=[];S.tab='round';save();render();window.scrollTo(0,0);}
 };
+Object.assign(H,H2);
 
 /* ===================== RENDER ===================== */
 const ICONS={
@@ -531,7 +570,8 @@ function renderBag(){
 function renderSetup(){
   const s=S.setup;
   const opt=(k)=>`<div class="opt ${s.scen===k?'on':''}" data-a="scen" data-v="${k}"><b>${esc(SCEN[k].n)}</b></div>`;
-  let h=`<h2 style="margin-bottom:4px">Nuova partita</h2><p class="small muted">Imposta scenario e investigatori: l'app ti guida poi nella preparazione e in ogni fase del round.</p>
+  let h=savesCard(false)+`<h2 style="margin-bottom:4px">Nuova partita</h2><p class="small muted">Imposta scenario e investigatori: l'app ti guida poi nella preparazione e in ogni fase del round.</p>
+  <div class="card"><label class="f" style="margin-top:0">Nome della partita</label><input type="text" data-f="name" value="${esc(s.name||'')}" placeholder="facoltativo, es. Campagna con Marco e Giulia"></div>
   <div class="card"><h3>Scenario</h3><div class="opts">${Object.keys(SCEN).map(opt).join('')}</div>
   <label class="f">Difficoltà</label><select data-f="diff">${Object.entries(DIFF).map(([k,d])=>`<option value="${k}" ${s.diff===k?'selected':''}>${d.n}</option>`).join('')}</select></div>`;
   h+=`<div class="card"><div class="row between"><h3>Investigatori (${s.invs.length})</h3>${s.invs.length<4?'<button class="sm" data-a="addInv">+ Aggiungi</button>':''}</div>`;
@@ -595,13 +635,46 @@ const RULES=`<h2 style="margin-bottom:10px">Regole rapide</h2>
 /* ===================== MODALE ===================== */
 function openModal(html){document.getElementById('sheet').innerHTML=html;document.getElementById('modal').classList.add('on');}
 function closeModal(){document.getElementById('modal').classList.remove('on');}
+function fmtDate(t){const d=new Date(t);return d.toLocaleDateString('it-IT')+' '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}
+function savesCard(inModal){
+  const a=loadSaves(),cur=S.game&&S.game.id;
+  let h=`<div class="${inModal?'':'card'}"><div class="row between"><h3>Carica partita</h3><button class="sm" data-a="importOpen">Importa…</button></div>`;
+  if(!a.length)h+=`<p class="small muted">Nessuna partita salvata su questo dispositivo. Le partite si salvano da sole mentre giochi.</p>`;
+  h+=a.map(r=>{const g=r.game;const where=g.phase===-1?'Preparazione':'Round '+g.round+' · '+PH[g.phase];
+    return `<div class="inv"><div class="row between"><b>${esc(r.name)}</b>${r.id===cur?'<span class="badge">In corso</span>':''}</div>
+    <div class="small muted">${esc(SCEN[g.scen].n)} · ${DIFF[g.diff].n} · ${where} · trama ${g.agenda+1}, capitolo ${g.act+1}</div>
+    <div class="small muted">Ultima modifica: ${fmtDate(r.at)}</div>
+    <div class="row" style="margin-top:8px">${r.id!==cur?`<button class="sm primary" data-a="loadSave" data-v="${r.id}">Carica</button>`:''}
+    <button class="sm" data-a="exportSave" data-v="${r.id}">Esporta</button><button class="sm ghost danger" data-a="delSave" data-v="${r.id}">Elimina</button></div></div>`}).join('');
+  return h+'</div>';
+}
+function openLoad(){openModal(savesCard(true)+`<div class="navbtns"><button class="ghost" data-a="close" style="flex:1">Chiudi</button></div>`);}
+function openExport(g){
+  openModal(`<h2 style="margin-bottom:8px">Esporta partita</h2><p class="small">${esc(g.name)}</p>
+  <p class="small muted">Copia il codice e incollalo con «Importa» su un altro telefono o PC, oppure scarica il file.</p>
+  <textarea id="code" readonly style="width:100%;height:110px;font:12px monospace;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px">${encodeCode(g)}</textarea>
+  <div class="navbtns"><button data-a="copyCode">Copia codice</button><button data-a="dlFile">Scarica file</button><button class="ghost" data-a="close">Chiudi</button></div>
+  <p id="copied" class="small" style="color:var(--ok)"></p>`);
+}
+function openImport(){
+  openModal(`<h2 style="margin-bottom:8px">Importa partita</h2>
+  <p class="small muted">Incolla il codice esportato oppure scegli un file <code>.arkham.json</code>.</p>
+  <textarea id="imp" style="width:100%;height:110px;font:12px monospace;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px" placeholder="Incolla qui il codice"></textarea>
+  <label class="f">oppure da file</label><input type="file" id="impFile" accept=".json,application/json,text/plain">
+  <p id="impMsg" class="small" style="color:#f0b3ab"></p>
+  <div class="navbtns"><button class="ghost" data-a="close">Annulla</button><button class="primary" data-a="importDo">Importa e carica</button></div>`);
+  document.getElementById('impFile').addEventListener('change',ev=>{const f=ev.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>importText(String(rd.result));rd.readAsText(f);});
+}
 function openMenu(){
   const g=G();
-  openModal(`<h2 style="margin-bottom:12px">Menu</h2><div class="opts">
-  ${g?`<button data-a="endScen">Fine scenario…</button>`:''}
-  <button class="${g?'danger':''}" data-a="newGame">${g?'Abbandona e inizia una nuova partita':'Nuova partita'}</button>
+  openModal(`<h2 style="margin-bottom:12px">Menu</h2>
+  ${g?`<label class="f" style="margin-top:0">Nome della partita</label><div class="row"><input type="text" id="renameIn" class="grow" style="width:auto;flex:1" value="${esc(g.name||'')}"><button class="sm" data-a="rename">Salva</button></div>`:''}
+  <div class="opts" style="margin-top:12px">
+  <button data-a="loadMenu">Carica partita…</button>
+  ${g?`<button data-a="exportGame">Esporta questa partita…</button><button data-a="endScen">Fine scenario…</button>`:''}
+  <button data-a="newGame">${g?'Nuova partita (questa resta salvata)':'Nuova partita'}</button>
   <button class="ghost" data-a="close">Chiudi</button></div>
-  <p class="small muted" style="margin-top:12px">La partita resta salvata su questo dispositivo anche se chiudi la pagina.</p>`);
+  <p class="small muted" style="margin-top:12px">Le partite si salvano da sole su questo dispositivo. Per continuarle altrove usa «Esporta».</p>`);
 }
 function openEnd(){
   const g=G();
