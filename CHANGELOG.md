@@ -2,6 +2,10 @@
 
 Numerazione: si parte da 0.0.5 e ogni modifica aumenta di 0.0.1. La 1.0.0 sarà la prima versione ufficiale.
 
+## [0.0.10] — 2026-11-07
+- **Codice personale della libreria immagini**: al posto della chiave casuale si sceglie un codice facile da ricordare (almeno 8 caratteri). Su qualsiasi dispositivo, menu ☰ → Immagini delle carte → inserisci il codice → «Apri la mia libreria». Una libreria già creata può prendere un codice personale da «Codice della libreria → Cambia codice».
+- Un codice sbagliato ora dà errore invece di aprire una libreria vuota.
+
 ## [0.0.9] — 2026-11-07
 - **Tutte le carte giocatore**: dati di tutte le espansioni presi da ArkhamDB (1.687 carte, testo italiano dove disponibile) nel file `cards-all.json`, caricato su richiesta. Ricerca, consultazione e import ora coprono qualsiasi mazzo, non solo il Set Base.
 - **Immagini caricate a mano**: menu ☰ → «Immagini delle carte» crea una libreria privata (chiave della guida). Si carica una carta dalla sua anteprima («Carica immagine») o molte insieme con il codice ArkhamDB nel nome del file (es. `01016.jpg`). Le immagini restano nel database, non nel repository; le vedono solo i dispositivi con la chiave e i giocatori dei tavoli collegati.

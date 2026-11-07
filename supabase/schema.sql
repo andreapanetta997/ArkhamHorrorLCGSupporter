@@ -248,3 +248,9 @@ revoke all on public.ah_libs, public.ah_images from anon, authenticated;
 -- ah_lib_get(p_auth, p_codes text[]) -> {codice: dataURL} (max 30 per chiamata)
 -- ah_host_set_lib(p_token, p_key): collega il tavolo alla libreria (p_key null scollega)
 -- Corpo completo delle funzioni: vedi la migrazione su Supabase; permessi: execute solo alle funzioni pubbliche.
+
+-- ===== codice personale della libreria (migrazioni "ah_libreria_codice_personale", "ah_libreria_verifica_codice") =====
+-- ah__lib_key_ok(p): almeno 8 caratteri, massimo 100
+-- ah_lib_create_named(p_key) -> {lib_id, key}: crea la libreria con un codice scelto dalla guida (errore se già usato)
+-- ah_lib_rekey(p_key, p_new): cambia il codice di una libreria esistente
+-- ah_lib_open(p_key) -> [codici]: come ah_lib_list ma dà errore se il codice non apre nessuna libreria

@@ -6,4 +6,4 @@
 - Le icone dei segnalini sono disegni originali: non sostituirle con le icone ufficiali FFG.
 - Tavolo online: Supabase progetto `oxpccbmfnbxukgbrdodo`, condiviso con Four Against ma **tenere tutto separato**: solo oggetti con prefisso `ah_`, mai toccare `games`, `chars`, `log` o le funzioni di Four Against. Ogni modifica allo schema va anche in `supabase/schema.sql`.
 - Carte: Set Base in `const CARDS` (id numerico = posizione), altre espansioni in `cards-all.json` (id = codice ArkhamDB stringa, es. "02010"). Rigenerabili da arkhamdb-json-data.
-- **Mai immagini ufficiali delle carte nel repository** (è pubblico): le immagini le carica Andrea nella libreria privata su Supabase (`ah_libs`/`ah_images`, chiave in localStorage `ahlcg-libkey`).
+- **Mai immagini ufficiali delle carte nel repository** (è pubblico): le immagini le carica Andrea nella libreria privata su Supabase (`ah_libs`/`ah_images`, codice personale scelto da Andrea, salvato in localStorage `ahlcg-libkey`).

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Guida al Round — Arkham Horror LCG</title>
-<meta name="version" content="0.0.9">
+<meta name="version" content="0.0.10">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -193,7 +193,7 @@ details.cdet{border:0;padding:0;margin:6px 0 0;background:none}details.cdet summ
 
 <script>
 /* ===================== DATI ===================== */
-const APP_VERSION='0.0.9';
+const APP_VERSION='0.0.10';
 const LS='ahlcg-guida-round-v1';
 const INV={
   roland:{n:'Roland Banks',c:'Guardiano',hp:9,san:5,sk:[3,3,4,2],ab:'Reazione: dopo che hai sconfitto un nemico, scopri 1 indizio nel tuo luogo (1 volta per round).',es:'+1 per ogni indizio nel tuo luogo.'},
@@ -841,14 +841,18 @@ function linkLibToTable(){const g=S.game;if(!LINKING&&LIBKEY&&g&&g.online&&g.onl
 function openLibrary(){
   const n=IMGLIST.size;
   openModal(`<h2 style="margin-bottom:8px">Immagini delle carte</h2>
-  <p class="small muted">Le immagini che carichi restano in una libreria privata nel database del tavolo (non nel repository). Le vedono solo i dispositivi con questa chiave e i giocatori dei tuoi tavoli online.</p>
+  <p class="small muted">Le immagini che carichi restano in una libreria privata nel database del tavolo (non nel repository). Le vedono solo i dispositivi dove hai inserito il codice e i giocatori dei tuoi tavoli online.</p>
   ${LIBKEY?`<div class="note okbox small">Libreria attiva · <b>${n}</b> immagini caricate.</div>
     <h3 style="margin-top:10px">Carica più immagini</h3><p class="small muted">Il nome di ogni file deve contenere il codice ArkhamDB della carta (es. <b>01016.jpg</b> per l'Automatica Calibro 45; il codice è nell'indirizzo della carta su ArkhamDB). Per una carta sola usa «Carica immagine» nella sua anteprima.</p>
     <button class="primary" style="width:100%" data-a="libBulk">Scegli i file…</button><div id="libMsg" class="small" style="margin-top:6px"></div>
-    <details style="margin-top:10px"><summary>Usare la libreria su un altro dispositivo</summary><p class="small">Copia questa chiave e incollala nello stesso menu sull'altro dispositivo. Non darla ai giocatori: con la chiave si possono anche modificare le immagini.</p>
-    <textarea id="libKeyOut" readonly style="width:100%;height:60px;font:12px monospace;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px">${LIBKEY}</textarea><button class="sm" data-a="libCopy">Copia chiave</button> <button class="sm ghost danger" data-a="libForget">Scollega da questo dispositivo</button></details>`
-  :`<button class="primary" style="width:100%" data-a="libCreate">Crea la mia libreria</button>
-    <label class="f">Hai già una libreria su un altro dispositivo? Incolla la chiave</label><div class="row"><input type="text" id="libKeyIn" class="grow" style="flex:1;width:auto"><button data-a="libUse">Usa</button></div>`}
+    <details style="margin-top:10px"><summary>Codice della libreria</summary><p class="small">Su un altro dispositivo apri questo stesso menu e inserisci il codice. Non darlo ai giocatori: con il codice si possono anche modificare le immagini (loro le vedono già tramite il tavolo).</p>
+    <div class="row"><input type="text" id="libKeyOut" readonly class="grow" style="flex:1;width:auto;font-family:ui-monospace,monospace" value="${esc(LIBKEY)}"><button class="sm" data-a="libCopy">Copia</button></div>
+    <label class="f">Cambia codice (almeno 8 caratteri, facile da ricordare)</label><div class="row"><input type="text" id="libNewKey" class="grow" style="flex:1;width:auto" autocomplete="off" placeholder="es. andrea-arkham-scan"><button class="sm" data-a="libRekey">Salva</button></div>
+    <button class="sm ghost danger" style="margin-top:10px" data-a="libForget">Scollega da questo dispositivo</button></details>`
+  :`<label class="f" style="margin-top:0">Il codice della tua libreria</label>
+    <input type="text" id="libKeyIn" autocomplete="off" placeholder="es. andrea-arkham-scan">
+    <p class="small muted" style="margin:6px 0 0">Almeno 8 caratteri. Sceglilo facile da ricordare per te ma non banale da indovinare.</p>
+    <div class="navbtns"><button class="primary" data-a="libUse">Apri la mia libreria</button><button data-a="libCreateNamed">Crea una nuova</button></div>`}
   <p id="libErr" class="small" style="color:#f0b3ab"></p><div class="navbtns"><button class="ghost" data-a="close" style="flex:1">Chiudi</button></div>`);
 }
 function codeFromFilename(n){const m=n.match(/(\d{5}[a-z]?)/i);return m?m[1].toLowerCase():null;}
@@ -1338,10 +1342,17 @@ Object.assign(H,{
   libMenu(){closeModal();refreshImgList(true).then(()=>{});openLibrary();},
   async libCreate(){try{const r=await rpc('ah_lib_create',{});LIBKEY=r.key;try{localStorage.setItem('ahlcg-libkey',LIBKEY);}catch(e){}IMGLIST=new Set();IMG_AUTH=null;linkLibToTable();openLibrary();}
     catch(e){document.getElementById('libErr').textContent='Non riesco a creare la libreria: '+e.message;}},
-  async libUse(){const k=document.getElementById('libKeyIn').value.trim();if(!k)return;
-    try{const l=await rpc('ah_lib_list',{p_auth:k});LIBKEY=k;try{localStorage.setItem('ahlcg-libkey',k);}catch(e){}IMGLIST=new Set(l||[]);IMG_AUTH=k;linkLibToTable();openLibrary();}
+  async libCreateNamed(){const k=document.getElementById('libKeyIn').value.trim();if(!k)return;
+    try{const r=await rpc('ah_lib_create_named',{p_key:k});LIBKEY=r.key;try{localStorage.setItem('ahlcg-libkey',LIBKEY);}catch(e){}IMGLIST=new Set();IMG_AUTH=LIBKEY;linkLibToTable();openLibrary();toast('Libreria creata');}
     catch(e){document.getElementById('libErr').textContent=e.message;}},
-  libCopy(){const t=document.getElementById('libKeyOut');t.select();try{navigator.clipboard.writeText(t.value).then(()=>toast('Chiave copiata'),()=>{});}catch(_){}},
+  async libRekey(){const k=document.getElementById('libNewKey').value.trim();if(!k)return;
+    try{await rpc('ah_lib_rekey',{p_key:LIBKEY,p_new:k});LIBKEY=k;try{localStorage.setItem('ahlcg-libkey',k);}catch(e){}IMG_AUTH=k;
+      const g=S.game;if(g&&g.online)g.online.lib=null;linkLibToTable();openLibrary();toast('Codice cambiato: inseriscilo anche sugli altri tuoi dispositivi');}
+    catch(e){document.getElementById('libErr').textContent=e.message;}},
+  async libUse(){const k=document.getElementById('libKeyIn').value.trim();if(!k)return;
+    try{const l=await rpc('ah_lib_open',{p_key:k});LIBKEY=k;try{localStorage.setItem('ahlcg-libkey',k);}catch(e){}IMGLIST=new Set(l||[]);IMG_AUTH=k;linkLibToTable();openLibrary();}
+    catch(e){document.getElementById('libErr').textContent=e.message;}},
+  libCopy(){const t=document.getElementById('libKeyOut');t.select();try{navigator.clipboard.writeText(t.value).then(()=>toast('Codice copiato'),()=>{});}catch(_){}},
   libForget(){LIBKEY=null;try{localStorage.removeItem('ahlcg-libkey');}catch(e){}IMG_AUTH=null;refreshImgList(true);closeModal();render();},
   async libBulk(){const files=await pickFiles(true);if(!files.length)return;const msg=document.getElementById('libMsg');let ok=0;const bad=[];
     for(const f of files){const code=codeFromFilename(f.name);if(!code){bad.push(f.name);continue;}
