@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Guida al Round — Arkham Horror LCG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c110f;--card:#151d19;--card2:#1c2621;--line:#2a3731;--txt:#e9e5d8;--mut:#98a59e;
+  --gold:#caa75a;--gold2:#e3c57e;--doom:#c4473d;--hp:#c95e50;--san:#5d91d4;--clue:#4db59b;--res:#d8a940;--ok:#5fae6a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+h1,h2,h3{font-family:Cinzel,serif;letter-spacing:.02em;margin:0}
+h2{font-size:1.15rem;color:var(--gold2)}
+h3{font-size:.98rem;color:var(--gold2);margin-bottom:6px}
+a{color:var(--gold2)}
+header{position:sticky;top:0;z-index:20;background:rgba(12,17,15,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) 12px 8px}
+.hrow{display:flex;align-items:center;gap:8px;max-width:760px;margin:0 auto}
+.hrow h1{font-size:1rem;flex:1;color:var(--gold)}
+main{max-width:760px;margin:0 auto;padding:12px 12px calc(96px + env(safe-area-inset-bottom))}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:20;background:#0f1613;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom)}
+nav button{background:none;border:0;border-radius:0;color:var(--mut);padding:10px 4px 12px;font-size:.78rem;min-height:56px;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button.on{color:var(--gold2)}
+nav svg{width:22px;height:22px}
+button{font:inherit;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px 13px;min-height:42px;cursor:pointer}
+button:active{transform:scale(.97)}
+button.primary{background:var(--gold);color:#1b1407;border-color:var(--gold);font-weight:700}
+button.danger{border-color:#6b2c27;color:#f0b3ab}
+button.ghost{background:none}
+button.sm{min-height:34px;padding:5px 10px;font-size:.85rem}
+button:disabled{opacity:.4}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.muted{color:var(--mut)}
+.small{font-size:.85rem}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.between{justify-content:space-between}
+.grow{flex:1}
+.badge{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 7px;border-radius:999px;background:#3a3220;color:var(--gold2);vertical-align:middle}
+.badge.out{background:#3a2422;color:#f0b3ab}
+.note{border-left:3px solid var(--gold);background:#1a201b;padding:8px 10px;border-radius:6px;margin:8px 0;font-size:.9rem}
+.warn{border-left-color:var(--doom);background:#251615}
+.okbox{border-left-color:var(--ok)}
+ul.clean{list-style:none;padding:0;margin:0}
+ul.bul{margin:6px 0;padding-left:20px}
+ul.bul li{margin:3px 0}
+.check{display:flex;gap:10px;align-items:flex-start;padding:9px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.check:last-child{border-bottom:0}
+.box{flex:none;width:24px;height:24px;border:2px solid var(--line);border-radius:7px;display:grid;place-items:center;margin-top:1px}
+.check.done .box{background:var(--ok);border-color:var(--ok)}
+.check.done .lbl{color:var(--mut);text-decoration:line-through}
+.box svg{width:15px;height:15px;color:#0c110f;opacity:0}
+.check.done .box svg{opacity:1}
+/* status */
+.status{display:grid;gap:8px;margin-bottom:12px}
+.phases{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.ph{font-size:.72rem;text-align:center;padding:6px 2px;border-radius:8px;background:var(--card);color:var(--mut);border:1px solid var(--line)}
+.ph.on{background:#2c2614;color:var(--gold2);border-color:var(--gold)}
+.ph.skip{opacity:.4;text-decoration:line-through}
+.meter{display:flex;align-items:center;gap:10px}
+.meter .lab{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}
+.bar{height:8px;background:#26302b;border-radius:99px;overflow:hidden;flex:1}
+.bar i{display:block;height:100%;background:var(--doom)}
+.big{font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums}
+.ctr{display:flex;align-items:center;gap:6px}
+.ctr button{width:38px;min-height:38px;padding:0;font-size:1.2rem;line-height:1}
+.ctr .v{min-width:44px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+/* step */
+.steph{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+.stepn{font-size:.75rem;color:var(--mut)}
+.navbtns{display:flex;gap:8px;margin-top:12px}
+.navbtns .primary{flex:1}
+/* investigators */
+.inv{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:var(--card2)}
+.inv.done{opacity:.55}
+.inv.isout{opacity:.4}
+.pips{display:flex;gap:8px;margin:8px 0}
+.pip{width:42px;height:42px;border-radius:50%;border:2px solid var(--gold);background:none;padding:0;min-height:0}
+.pip.used{background:var(--gold);}
+.pip.tome{border-style:dashed}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px}
+.stat .k{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;justify-content:space-between}
+.k.hp{color:var(--hp)}.k.san{color:var(--san)}.k.clue{color:var(--clue)}.k.res{color:var(--res)}
+.skills{display:flex;gap:10px;font-size:.82rem;color:var(--mut)}
+.skills b{color:var(--txt)}
+/* forms */
+label.f{display:block;font-size:.8rem;color:var(--mut);margin:10px 0 4px}
+select,input[type=text],input[type=number]{font:inherit;width:100%;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px 10px;min-height:42px}
+.opts{display:grid;gap:8px}
+.opt{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--card2);cursor:pointer}
+.opt.on{border-color:var(--gold);background:#272214}
+.opt b{display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.invrow{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
+/* tokens */
+.tok{display:inline-grid;place-items:center;min-width:34px;height:34px;padding:0 6px;border-radius:50%;background:#2a2e2b;border:2px solid #4a514c;font-weight:700;font-size:.85rem;margin:3px}
+.tok.s{border-color:var(--gold);color:var(--gold2);border-radius:10px;font-size:.72rem}
+.draw{font-size:2.4rem;font-weight:700;text-align:center;padding:14px;font-family:Cinzel,serif;color:var(--gold2)}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+td,th{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--gold2);font-weight:600}
+details{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;background:var(--card)}
+details summary{cursor:pointer;font-family:Cinzel,serif;color:var(--gold2);font-weight:600}
+details[open] summary{margin-bottom:8px}
+.log li{font-size:.82rem;color:var(--mut);padding:3px 0;border-bottom:1px dashed var(--line)}
+/* modal */
+#modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center}
+#modal.on{display:flex}
+.sheet{background:var(--card);border:1px solid var(--line);border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-width:760px;width:100%;max-height:85vh;overflow:auto}
+@media(min-width:700px){#modal{align-items:center}.sheet{border-radius:16px}}
+</style>
+</head>
+<body>
+<header><div class="hrow">
+  <h1>Arkham · Guida al Round</h1>
+  <button class="sm ghost" data-a="undo" id="undoBtn" title="Annulla ultima modifica">↶ Annulla</button>
+  <button class="sm ghost" data-a="menu">☰</button>
+</div></header>
+<main id="app"></main>
+<nav id="tabs"></nav>
+<div id="modal"><div class="sheet" id="sheet"></div></div>
+
+<script>
+/* ===================== DATI ===================== */
+const LS='ahlcg-guida-round-v1';
+const INV={
+  roland:{n:'Roland Banks',c:'Guardiano',hp:9,san:5,sk:[3,3,4,2],ab:'Reazione: dopo che hai sconfitto un nemico, scopri 1 indizio nel tuo luogo (1 volta per round).',es:'+1 per ogni indizio nel tuo luogo.'},
+  daisy:{n:'Daisy Walker',c:'Studioso',hp:5,san:9,sk:[3,5,2,2],ab:'1 azione aggiuntiva per turno, solo per capacità [→] di carte Tomo.',es:'+0. Se hai successo, pesca 1 carta per ogni Tomo che controlli.'},
+  skids:{n:'"Skids" O\'Toole',c:'Canaglia',hp:8,san:6,sk:[2,3,3,4],ab:'Gratis, durante il tuo turno: spendi 2 risorse per 1 azione aggiuntiva (1 volta per turno).',es:'+2. Se hai successo, ottieni 2 risorse.'},
+  agnes:{n:'Agnes Baker',c:'Mistico',hp:6,san:8,sk:[5,2,2,3],ab:'Reazione: dopo che ricevi 1+ orrori, infliggi 1 danno a un nemico nel tuo luogo (1 volta per fase).',es:'+1 per ogni orrore su di te.'},
+  wendy:{n:'Wendy Adams',c:'Sopravvissuto',hp:7,san:7,sk:[4,3,1,4],ab:'Reazione: quando riveli un segnalino, scarta 1 carta dalla mano per annullarlo e rivelarne un altro (1 volta per prova).',es:'+0. Con l\'Amuleto di Wendy in gioco, successo automatico.'},
+  altro:{n:'Altro investigatore',c:'',hp:7,san:7,sk:null,ab:'',es:'Vedi la carta investigatore.'}
+};
+const DIFF={
+  facile:{n:'Facile',side:'std',bag:['+1','+1','0','0','0','−1','−1','−1','−2','−2']},
+  standard:{n:'Standard',side:'std',bag:['+1','0','0','−1','−1','−1','−2','−2','−3','−4']},
+  difficile:{n:'Difficile',side:'hard',bag:['0','0','0','−1','−1','−2','−2','−3','−3','−4','−5']},
+  esperto:{n:'Esperto',side:'hard',bag:['0','−1','−1','−2','−2','−3','−3','−4','−4','−5','−6','−8']}
+};
+const TK={skull:'Teschio',cultist:'Cultista',tablet:'Tavoletta',elder:'Antico',sign:'Simbolo degli Antichi',fail:'Fallimento automatico'};
+const SCEN={
+  adunanza:{n:"I · L'Adunanza",
+    agendas:[{n:'Cosa Succede?',d:3},{n:"L'Ascesa dei Ghoul",d:7},{n:'Stanno Uscendo!',d:10,notes:{
+      endEnemy:'Obbligo (Trama 3): ogni nemico Ghoul non impegnato si muove di 1 luogo verso il Salotto.',
+      endRound:'Obbligo (Trama 3): +1 destino su questa trama per ogni nemico Ghoul nel Corridoio o nel Salotto.'}}],
+    acts:[{n:'In Trappola',c:2},{n:'La Barriera',c:3,notes:{
+      always:'Obiettivo (Capitolo 2): gli indizi si spendono solo a fine round, dagli investigatori nel Corridoio.',
+      endRound:'Obiettivo (Capitolo 2): gli investigatori nel Corridoio possono spendere ora 3 indizi per investigatore per proseguire.'}},
+      {n:'Che Cosa Avete Fatto?',obj:'Obiettivo: sconfiggere il Ghoul Sacerdote.'}],
+    tokens:{std:{skull:'−X, dove X è il numero di nemici Ghoul nel tuo luogo.',cultist:'−1. Se fallisci, subisci 1 orrore.',tablet:'−2. Se c\'è un nemico Ghoul nel tuo luogo, subisci 1 danno.'},
+            hard:{skull:'−2. Se fallisci, dopo la prova cerca nel mazzo e negli scarti degli incontri un Ghoul e pescalo.',cultist:'Rivela 1 altro segnalino. Se fallisci, subisci 2 orrori.',tablet:'−4. Se c\'è un nemico Ghoul nel tuo luogo, subisci 1 danno e 1 orrore.'}}},
+  maschere:{n:'II · Le Maschere di Mezzanotte',
+    agendas:[{n:'Predatore o Preda?',d:6,notes:{always:'Sulla trama c\'è un\'azione Abbandona: si può uscire dallo scenario tenendo ciò che si è scoperto.'}},
+             {n:'Il Tempo Stringe',d:8,notes:{always:'Sulla trama c\'è un\'azione Abbandona: si può uscire dallo scenario tenendo ciò che si è scoperto.'}}],
+    acts:[{n:'Smascherare la Cospirazione',obj:'Azione: il gruppo spende 2 indizi per investigatore → pesca la prima carta del mazzo dei cultisti. Obiettivo: 6 Cultisti unici nella galleria delle vittorie (non tutti sono nel mazzo dei cultisti).'}],
+    tokens:{std:{skull:'−X, dove X è il destino più alto su un nemico Cultista in gioco.',cultist:'−2. Colloca 1 destino sul nemico Cultista più vicino.',tablet:'−3. Se fallisci, colloca 1 tuo indizio nel tuo luogo.'},
+            hard:{skull:'−X, dove X è il destino totale in gioco.',cultist:'−2. Colloca 1 destino su ogni Cultista in gioco; se non ce ne sono, rivela 1 altro segnalino.',tablet:'−4. Se fallisci, colloca tutti i tuoi indizi nel tuo luogo.'}}},
+  divoratore:{n:'III · Il Divoratore Sotterraneo',
+    agendas:[{n:'I Boschi di Arkham',d:4},{n:'Il Rituale Ha Inizio',d:5,notes:{always:'Trama 2: ogni nemico riceve +1 Scontro e +1 Agilità.'}},{n:'La Vendetta Attende',d:5}],
+    acts:[{n:'Seguire la Pista',c:3},{n:'Nelle Tenebre',obj:'Obiettivo: un investigatore entra nel Sito del Rituale.'},
+          {n:'Interferire nel Rituale',obj:'Azione: spendi 1 indizio e fai una prova di Volontà (3) o Agilità (3); se hai successo, 1 indizio su questo capitolo. Obiettivo: 2 indizi per investigatore sul capitolo.'}],
+    ritual:true,
+    tokens:{std:{skull:'−X, dove X è il numero di nemici Mostro in gioco.',cultist:'−2. Colloca 1 destino sul nemico più vicino.',tablet:'−3. Se c\'è un nemico Mostro nel tuo luogo, subisci 1 danno.',elder:'−5. Se c\'è un nemico Grande Antico in gioco, rivela 1 altro segnalino.'},
+            hard:{skull:'−3. Se fallisci, dopo la prova cerca nel mazzo e negli scarti degli incontri un Mostro e pescalo.',cultist:'−4. Colloca 2 destini sul nemico più vicino.',tablet:'−5. Se c\'è un nemico Mostro nel tuo luogo, subisci 1 danno e 1 orrore.',elder:'−7. Se c\'è un nemico Grande Antico in gioco, rivela 1 altro segnalino.'}}},
+  generico:{n:'Altro scenario (generico)',agendas:[{n:'Trama attuale',d:null}],acts:[{n:'Capitolo attuale',obj:'Vedi la carta del capitolo.'}],tokens:null}
+};
+const PH=['Miti','Investigatori','Nemici','Gestione'];
+
+/* ===================== STATO ===================== */
+function freshSetup(){return {scen:'adunanza',diff:'standard',invs:[{pick:'roland',player:'',tf:0,tm:0},{pick:'daisy',player:'',tf:0,tm:0}],lead:0,house:'piedi',priest:false,fuggiti:0,midnight:false,customD:8};}
+function load(){try{const s=localStorage.getItem(LS);return s?JSON.parse(s):null}catch(e){return null}}
+function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+let S=load()||{setup:freshSetup(),game:null,tab:'round',draw:null};
+let UNDO=[];
+const G=()=>S.game;
+function mut(fn){if(S.game){UNDO.push(JSON.stringify(S.game));if(UNDO.length>80)UNDO.shift();}fn();save();render();}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function log(g,t){g.log.unshift({r:g.round,t});if(g.log.length>60)g.log.pop();}
+function order(g){const n=g.invs.length;return g.invs.map((_,i)=>(g.lead+i)%n);}
+function sc(g){return SCEN[g.scen]}
+function agenda(g){return sc(g).agendas[g.agenda]}
+function act(g){return sc(g).acts[g.act]}
+function thr(g){const a=agenda(g);if(!a)return null;return a.d==null?g.customD:a.d;}
+function totDoom(g){return g.doom+g.odoom}
+function actReq(g){const a=act(g);return a&&a.c?a.c*g.invs.length:null}
+function groupClues(g){return g.invs.filter(v=>!v.out).reduce((s,v)=>s+v.clues,0)}
+function invName(v){return esc(v.name)+(v.player?` <span class="muted small">(${esc(v.player)})</span>`:'')}
+function notes(g,kind){
+  const out=[];const a=agenda(g),c=act(g);
+  if(a&&a.notes&&a.notes[kind])out.push(a.notes[kind]);
+  if(c&&c.notes&&c.notes[kind])out.push(c.notes[kind]);
+  if(sc(g).ritual&&kind==='endRound'&&g.act>=1)out.push('Obbligo (Sito del Rituale, se in gioco): se ha meno di 2 indizi per investigatore, aggiungete indizi fino a quel numero.');
+  return out;
+}
+const CHK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M5 12l5 5L20 7"/></svg>';
+
+/* ===================== PASSI ===================== */
+function generalSetup(g){return [
+  'Ogni giocatore prende investigatore e mazzo. In campagna, danni e orrori pari ai traumi (già impostati qui).',
+  'Riserva dei segnalini a portata di mano (risorse, danni, orrori, indizi, destino).',
+  `Sacchetto del caos — ${DIFF[g.diff].n}: vedi la scheda «Caos».`,
+  'Ognuno prende 5 risorse (già impostate qui).',
+  'Ognuno pesca 5 carte. Debolezze pescate: da parte senza risolverle, e se ne pesca un\'altra al loro posto.',
+  'Mulligan in ordine di gioco: si possono rimpiazzare carte una sola volta (fino a 5). Poi rimescolate le debolezze messe da parte nei mazzi.',
+  'Mazzo trame in ordine con la Trama 1a in cima, mazzo capitoli con il Capitolo 1a in cima, carta di consultazione accanto alle trame.'
+];}
+function scenSetup(g){
+  const n=g.invs.length,c=g.cond;
+  if(g.scen==='adunanza')return[
+    'Radunate i set: L\'Adunanza, Ratti, Ghoul, Paura Incombente, Mali Antichi, Freddo Raggelante.',
+    'Mettete in gioco lo Studio: tutti iniziano lì.',
+    'Da parte: gli altri luoghi (Corridoio, Cantina, Soffitta, Salotto), Ghoul Sacerdote e Lita Chantler.',
+    'Mescolate le altre carte incontro per formare il mazzo degli incontri.',
+    'Leggete l\'introduzione nella Guida alla Campagna.'];
+  if(g.scen==='maschere'){
+    const ac=['','Nessun Accolito','1 Accolito a Southside','2 Accoliti: Southside e Centro Cittadino','3 Accoliti: Southside, Centro Cittadino e Cimitero'][n];
+    const L=['Radunate i set: Le Maschere di Mezzanotte, Freddo Raggelante, Magri Notturni, Culto Oscuro, Porte Chiuse.',
+      'Mettete da parte il set Culto di Umôrdhoth, mescolato, come «mazzo dei cultisti».',
+      'Scegliete a caso una versione di Centro Cittadino e una di Southside; rimuovete le altre due.',
+      'Mettete in gioco Northside, East Town, River Town, Ospedale St. Mary, Cimitero, Miskatonic University'+(c.house==='rasa'?'.':' e Casa.'),
+      `Accoliti (${n} giocator${n>1?'i':'e'}): ${ac}.`,
+      c.house==='rasa'?'Casa rasa al suolo: rimuovete la Casa; tutti iniziano a River Town.':'Casa ancora in piedi: tutti iniziano nella Casa.',
+      'Mescolate le altre carte incontro per formare il mazzo degli incontri.'];
+    if(c.priest)L.push('Il Ghoul Sacerdote è ancora vivo: mescolatelo nel mazzo degli incontri.');
+    L.push('Il destino sui nemici conta per la soglia della trama: segnatelo come «destino su altre carte».');
+    L.push('Leggete l\'introduzione (Intro 1 o 2 in base al registro, poi Intro 3).');
+    return L;}
+  if(g.scen==='divoratore'){
+    const f=c.fuggiti,d=f==0?0:f<=2?1:f<=4?2:3;
+    const L=['Radunate i set: Il Divoratore Sotterraneo, Mali Antichi, Paura Incombente, Ghoul, Culto Oscuro.',
+      'Mettete in gioco il Sentiero Principale. Mescolate le 6 copie dei Boschi di Arkham, mettetene in gioco 4 a caso senza guardarne il lato aperto, rimuovete le altre 2. Tutti iniziano sul Sentiero Principale.',
+      'Da parte: Sito del Rituale e Umôrdhoth.',
+      'Scegliete a caso uno dei set Agenti (Yog-Sothoth, Shub-Niggurath, Cthulhu, Hastur) e, senza guardarlo, mescolatelo con le altre carte incontro. Rimuovete gli altri 3.',
+      `Cultisti fuggiti: ${f} → ${d} destino sulla Trama 1a (già impostato qui).`,
+      'Aggiungete 1 segnalino Antico al sacchetto del caos per il resto della campagna.'];
+    if(c.midnight)L.push('È passata la mezzanotte: ogni giocatore scarta 2 carte a caso dalla mano iniziale.');
+    if(c.priest)L.push('Il Ghoul Sacerdote è ancora vivo: mescolatelo nel mazzo degli incontri.');
+    L.push('Leggete l\'introduzione nella Guida alla Campagna.');
+    return L;}
+  return['Seguite la preparazione indicata dallo scenario.','Imposta la soglia di destino della trama nella barra in alto (tocca ✎).'];
+}
+
+function checklist(g,key,items){
+  return '<div>'+items.map((t,i)=>{const k=key+i,on=g.checks[k];
+    return `<div class="check ${on?'done':''}" data-a="chk" data-v="${k}"><span class="box">${CHK}</span><span class="lbl">${t}</span></div>`}).join('')+'</div>';
+}
+
+function steps(g){
+  const P=g.phase,ord=order(g);
+  if(P===-1)return[
+    {t:'Preparazione generale',b:()=>checklist(g,'gen',generalSetup(g))},
+    {t:'Preparazione dello scenario',b:()=>checklist(g,'scn',scenSetup(g))},
+    {t:'Pronti',b:()=>`<p>Leggete la Trama 1a e il Capitolo 1a.</p><div class="note">Primo round: si salta la Fase dei Miti, si parte dalla Fase degli Investigatori.</div>`,next:'Inizia il round 1'}
+  ];
+  if(P===0)return[
+    {t:'Inizio del round',b:()=>`<p>Inizia il round <b>${g.round}</b>. Si risolvono gli effetti «all'inizio del round» e «all'inizio della Fase dei Miti».</p>`},
+    {t:'Colloca 1 destino sulla trama',b:()=>g.mDoom?`<div class="note okbox">Fatto: destino sulla trama ora ${g.doom}.</div>`:`<p>Mettete 1 segnalino destino sulla trama attuale.</p>`,
+      prim:g.mDoom?null:{l:'+1 destino e continua',a:'mDoom'}},
+    {t:'Controlla la soglia di destino',b:()=>{const t=thr(g),T=totDoom(g);
+      if(t==null)return'<p class="muted">Nessuna trama attiva.</p>';
+      return `<p>Destino in gioco: <b>${T}</b> (trama ${g.doom} + altre carte ${g.odoom}) · soglia <b>${t}</b>.</p>`+
+      (T>=t?`<div class="note warn"><b>La trama prosegue!</b> Togliete tutto il destino in gioco, girate la trama e seguite il retro (se il retro è una carta incontro, si risolve come pescata).</div><button class="primary" data-a="advAgenda">Trama successiva</button>`
+           :`<div class="note okbox">Sotto la soglia: non succede niente.</div>`)}},
+    {t:'Pescate le carte incontro',b:()=>`<p class="small muted">In ordine di gioco, a partire dall'investigatore capo.</p>`+
+      ord.map(i=>{const v=g.invs[i];if(v.out)return'';const on=g.drawn[i];
+        return `<div class="check ${on?'done':''}" data-a="drawn" data-i="${i}"><span class="box">${CHK}</span><span class="lbl">${invName(v)}${i===g.lead?' <span class="badge">Capo</span>':''}</span></div>`}).join('')+
+      `<ul class="bul small"><li><b>Rivelazione</b>: si risolve subito.</li><li><b>Nemico</b>: va dove dice «Generazione»; senza, è impegnato con chi l'ha pescato.</li><li><b>Sventura</b>: dopo la Rivelazione va negli scarti degli incontri, salvo diversa indicazione.</li><li><b>Impulso</b>: pescate un'altra carta. <b>Isolamento</b>: nessuno può aiutare chi l'ha pescata.</li></ul>`},
+    {t:'Fine della Fase dei Miti',b:()=>`<p>Si risolvono gli effetti «alla fine della Fase dei Miti».</p><div class="note">Es. Mago dell'Ordine: +1 destino su di esso. Usa «Altre carte +» nella barra in alto.</div>`}
+  ];
+  if(P===1)return[
+    {t:'Turni degli investigatori',b:()=>{
+      let h=`<p class="small muted">Decidete voi l'ordine. Ognuno fa fino a 3 azioni; un turno iniziato va finito prima del successivo. Tocca i cerchi per segnare le azioni usate.</p>`;
+      h+=ord.map(i=>invTurn(g,i)).join('');
+      notes(g,'always').forEach(x=>h+=`<div class="note">${x}</div>`);
+      h+=`<details><summary>Azioni disponibili</summary>${ACTIONS_TABLE}</details>`;
+      h+=`<div class="note warn small"><b>Attacchi di opportunità:</b> se sei impegnato con nemici pronti, ogni azione tranne Combattimento, Elusione, Abbandona/Negozia provoca un attacco da ognuno. Le carte Veloce non lo provocano.</div>`;
+      return h;},
+      next:()=>g.invs.every(v=>v.out||v.turnDone)?'Alla Fase dei Nemici':'Alla Fase dei Nemici (turni non chiusi)'}
+  ];
+  if(P===2)return[
+    {t:'Movimento dei Cacciatori',b:()=>`<p>Ogni nemico <b>Cacciatore</b> pronto e non impegnato si muove di 1 luogo verso l'investigatore più vicino (percorso più breve).</p><ul class="bul small"><li>Non si muove se nel suo luogo c'è già un investigatore.</li><li>A parità decide la <b>Preda</b>, poi l'investigatore capo.</li><li>Se arriva pronto nel luogo di un investigatore, lo impegna.</li></ul>`,
+      alt:{l:'Nessun nemico in gioco: salta la fase',a:'skipEnemy'}},
+    {t:'Attacchi dei nemici',b:()=>`<p class="small muted">In ordine di gioco: ogni investigatore subisce l'attacco di ogni nemico pronto impegnato con lui, nell'ordine che sceglie. Dopo l'attacco il nemico si esaurisce.</p>`+
+      ord.map(i=>{const v=g.invs[i];if(v.out)return'';const on=g.atk[i];
+        return `<div class="check ${on?'done':''}" data-a="atk" data-i="${i}"><span class="box">${CHK}</span><span class="lbl">${invName(v)}</span></div>`}).join('')+
+      `<ul class="bul small"><li>Danni e orrori dell'attacco arrivano insieme: si possono assegnare ai supporti con Salute/Sanità.</li><li><b>Massiccio</b>: attacca tutti nel suo luogo, poi si esaurisce.</li><li>Schivata e simili: si giocano adesso.</li></ul>`},
+    {t:'Fine della Fase dei Nemici',b:()=>{const N=notes(g,'endEnemy');return `<p>Si risolvono gli effetti «alla fine della Fase dei Nemici».</p>`+(N.length?N.map(x=>`<div class="note warn">${x}</div>`).join(''):'<p class="muted small">Nessun effetto dello scenario da ricordare.</p>')}}
+  ];
+  return[
+    {t:'Ripristino',b:()=>`<ul class="bul"><li>Girate le mini carte investigatore sul lato a colori.</li><li>Ripristinate tutte le carte esaurite (supporti, nemici…).</li><li>Un nemico non impegnato che si ripristina nel luogo di un investigatore lo impegna.</li></ul>`},
+    {t:'Pescate 1 carta e prendete 1 risorsa',b:()=>`<p>In ordine di gioco ognuno pesca 1 carta, poi ognuno prende 1 risorsa.</p>${g.resGiven?'<div class="note okbox">Risorse assegnate.</div>':''}<div class="note small">Mazzo vuoto: rimescolate gli scarti, completate la pescata, poi subite 1 orrore.</div>`,
+      prim:g.resGiven?null:{l:'+1 risorsa a tutti e continua',a:'upRes'}},
+    {t:'Limite di mano',b:()=>`<p>Chi ha <b>9 o più</b> carte in mano scarta fino a tenerne 8.</p>`},
+    {t:'Fine del round',b:()=>{const N=notes(g,'endRound');return `<p>Scadono gli effetti «fino alla fine del round»; si risolvono quelli «alla fine del round».</p>`+N.map(x=>`<div class="note warn">${x}</div>`).join('')},next:'Inizia il round '+(g.round+1)}
+  ];
+}
+
+function invTurn(g,i){
+  const v=g.invs[i];
+  if(v.out)return `<div class="inv isout"><b>${invName(v)}</b> <span class="badge out">Eliminato</span></div>`;
+  let pips='';for(let k=0;k<v.maxA;k++)pips+=`<button class="pip ${k<v.used?'used':''}" data-a="pip" data-i="${i}" data-v="${k}" aria-label="azione ${k+1}"></button>`;
+  if(v.id==='daisy')pips+=`<button class="pip tome ${v.tome?'used':''}" data-a="tome" data-i="${i}" title="Azione Tomo"></button>`;
+  const left=v.maxA-v.used;
+  return `<div class="inv ${v.turnDone?'done':''}">
+    <div class="row between"><div><b>${invName(v)}</b>${i===g.lead?' <span class="badge">Capo</span>':''}</div>
+    <span class="small muted">${v.turnDone?'turno finito':left+' azion'+(left===1?'e':'i')+' rimast'+(left===1?'a':'e')}</span></div>
+    ${v.turnDone?'':`<div class="pips">${pips}</div>
+    <div class="row small muted"><span>💰 ${v.res}</span><span>🔍 ${v.clues}</span><span style="color:var(--hp)">♥ ${v.dmg}/${v.hp}</span><span style="color:var(--san)">✦ ${v.hor}/${v.san}</span></div>
+    ${INV[v.id].ab?`<div class="small muted" style="margin-top:6px">${INV[v.id].ab}</div>`:''}
+    <div class="row" style="margin-top:8px">
+      <button class="sm" data-a="res" data-i="${i}" data-v="1">+1 risorsa</button>
+      <button class="sm" data-a="clue" data-i="${i}" data-v="1">+1 indizio</button>
+      <button class="sm" data-a="extra" data-i="${i}">+1 azione extra</button>
+      ${v.id==='skids'&&!v.skidsUsed?`<button class="sm" data-a="skids" data-i="${i}" ${v.res<2?'disabled':''}>Skids: 2 risorse → +1 azione</button>`:''}
+    </div>`}
+    <div class="row" style="margin-top:8px">${v.turnDone?`<button class="sm ghost" data-a="reopen" data-i="${i}">Riapri turno</button>`:`<button class="sm primary" data-a="endTurn" data-i="${i}">Fine turno</button>`}</div>
+  </div>`;
+}
+
+const ACTIONS_TABLE=`<table><tr><th>Azione</th><th>Effetto</th></tr>
+<tr><td>Indagine</td><td>Intelletto vs Oscurità: se superi, 1 indizio dal luogo.</td></tr>
+<tr><td>Movimento</td><td>Vai in un luogo collegato (se chiuso, aprilo e mettici gli indizi).</td></tr>
+<tr><td>Combattimento</td><td>Scontro vs Scontro del nemico: se superi, 1 danno + bonus.</td></tr>
+<tr><td>Elusione</td><td>Solo nemici impegnati con te. Agilità vs Agilità: lo esaurisci e ti disimpegni.</td></tr>
+<tr><td>Impegno</td><td>Impegni un nemico nel tuo luogo.</td></tr>
+<tr><td>Gioco</td><td>Paghi e giochi un supporto o un evento (non Veloce).</td></tr>
+<tr><td>Attivazione</td><td>Usi una capacità [→] di una tua carta, del luogo, della trama o del capitolo.</td></tr>
+<tr><td>Pesca</td><td>Peschi 1 carta.</td></tr>
+<tr><td>Risorsa</td><td>Prendi 1 risorsa.</td></tr></table>`;
+
+/* ===================== AZIONI ===================== */
+function enterPhase(g,p){
+  g.phase=p;g.step=0;
+  if(p===0){g.drawn={};g.mDoom=false;}
+  if(p===1)g.invs.forEach(v=>{v.used=0;v.maxA=3;v.tome=0;v.turnDone=false;v.skidsUsed=false;});
+  if(p===2)g.atk={};
+  if(p===3)g.resGiven=false;
+}
+function goNext(g){
+  const st=steps(g);
+  if(g.step<st.length-1){g.step++;return;}
+  if(g.phase===-1){g.round=1;enterPhase(g,1);log(g,'Inizio round 1 (si salta la Fase dei Miti)');return;}
+  if(g.phase===3){g.round++;enterPhase(g,0);log(g,'Inizio round '+g.round);return;}
+  enterPhase(g,g.phase+1);
+}
+function goPrev(g){
+  if(g.step>0){g.step--;return;}
+  if(g.phase===-1)return;
+  if(g.phase===1&&g.round===1){g.phase=-1;g.step=steps(g).length-1;return;}
+  if(g.phase===0){g.round--;g.phase=3;g.step=steps(g).length-1;return;}
+  g.phase--;g.step=steps(g).length-1;
+}
+function advAgenda(g){
+  const a=agenda(g);log(g,`Trama ${g.agenda+1} (${a?a.n:''}) prosegue — tolto tutto il destino`);
+  g.agenda++;g.doom=0;g.odoom=0;
+}
+function advAct(g){const a=act(g);log(g,`Capitolo ${g.act+1} (${a?a.n:''}) completato`);g.act++;}
+
+function startGame(){
+  const s=S.setup;
+  const g={scen:s.scen,diff:s.diff,lead:Math.min(s.lead,s.invs.length-1),round:0,phase:-1,step:0,agenda:0,act:0,doom:0,odoom:0,
+    customD:s.customD||8,log:[],drawn:{},atk:{},checks:{},resGiven:false,mDoom:false,
+    cond:{house:s.house,priest:s.priest,fuggiti:s.fuggiti,midnight:s.midnight},
+    invs:s.invs.map(r=>{const d=INV[r.pick];const custom=r.pick==='altro';
+      return {id:r.pick,name:custom?(r.cname||'Investigatore'):d.n,player:r.player||'',hp:custom?(+r.chp||7):d.hp,san:custom?(+r.csan||7):d.san,
+        dmg:+r.tf||0,hor:+r.tm||0,res:5,clues:0,used:0,maxA:3,tome:0,turnDone:false,skidsUsed:false,out:false};})};
+  if(s.scen==='divoratore'){const f=+s.fuggiti;g.doom=f==0?0:f<=2?1:f<=4?2:3;}
+  log(g,'Partita iniziata: '+SCEN[g.scen].n+' · '+DIFF[g.diff].n);
+  UNDO=[];S.game=g;S.tab='round';save();render();window.scrollTo(0,0);
+}
+
+const H={
+  undo(){if(!UNDO.length)return;S.game=JSON.parse(UNDO.pop());save();render();},
+  menu(){openMenu();},
+  tab(e){S.tab=e.dataset.v;save();render();window.scrollTo(0,0);},
+  next(){mut(()=>goNext(G()));window.scrollTo(0,0);},
+  prev(){mut(()=>goPrev(G()));window.scrollTo(0,0);},
+  chk(e){mut(()=>{const g=G(),k=e.dataset.v;g.checks[k]=!g.checks[k];});},
+  mDoom(){mut(()=>{const g=G();g.doom++;g.mDoom=true;log(g,'Fase dei Miti: +1 destino (trama '+g.doom+')');g.step++;});},
+  advAgenda(){mut(()=>advAgenda(G()));},
+  advAct(){mut(()=>advAct(G()));},
+  drawn(e){mut(()=>{const g=G(),i=e.dataset.i;g.drawn[i]=!g.drawn[i];});},
+  atk(e){mut(()=>{const g=G(),i=e.dataset.i;g.atk[i]=!g.atk[i];});},
+  skipEnemy(){mut(()=>{const g=G();log(g,'Fase dei Nemici saltata');enterPhase(g,3);});},
+  upRes(){mut(()=>{const g=G();g.invs.forEach(v=>{if(!v.out)v.res++;});g.resGiven=true;log(g,'Gestione: +1 risorsa a tutti');g.step++;});},
+  pip(e){mut(()=>{const v=G().invs[e.dataset.i],k=+e.dataset.v;v.used=k<v.used?k:k+1;});},
+  tome(e){mut(()=>{const v=G().invs[e.dataset.i];v.tome=v.tome?0:1;});},
+  extra(e){mut(()=>{const v=G().invs[e.dataset.i];v.maxA++;});},
+  skids(e){mut(()=>{const g=G(),v=g.invs[e.dataset.i];if(v.res<2)return;v.res-=2;v.maxA++;v.skidsUsed=true;log(g,'Skids spende 2 risorse per 1 azione extra');});},
+  endTurn(e){mut(()=>{const g=G(),v=g.invs[e.dataset.i];v.turnDone=true;log(g,v.name+' termina il turno');});},
+  reopen(e){mut(()=>{G().invs[e.dataset.i].turnDone=false;});},
+  doom(e){mut(()=>{const g=G();g.doom=Math.max(0,g.doom+ +e.dataset.v);});},
+  odoom(e){mut(()=>{const g=G();g.odoom=Math.max(0,g.odoom+ +e.dataset.v);});},
+  thrEdit(e){mut(()=>{const g=G();g.customD=Math.max(1,g.customD+ +e.dataset.v);});},
+  res(e){mut(()=>{const v=G().invs[e.dataset.i];v.res=Math.max(0,v.res+ +e.dataset.v);});},
+  clue(e){mut(()=>{const v=G().invs[e.dataset.i];v.clues=Math.max(0,v.clues+ +e.dataset.v);});},
+  dmg(e){mut(()=>{const g=G(),v=g.invs[e.dataset.i];v.dmg=Math.max(0,v.dmg+ +e.dataset.v);if(v.dmg>=v.hp&&!v.out)log(g,v.name+' ha danni ≥ Salute: sconfitto!');});},
+  hor(e){mut(()=>{const g=G(),v=g.invs[e.dataset.i];v.hor=Math.max(0,v.hor+ +e.dataset.v);if(v.hor>=v.san&&!v.out)log(g,v.name+' ha orrori ≥ Sanità: sconfitto!');});},
+  out(e){mut(()=>{const g=G(),v=g.invs[e.dataset.i];v.out=!v.out;log(g,v.name+(v.out?' eliminato (sconfitto o ha abbandonato)':' rientra'));});},
+  lead(e){mut(()=>{G().lead=+e.dataset.i;});},
+  draw(){const g=G();const bag=bagOf(g?g.scen:S.setup.scen,g?g.diff:S.setup.diff);S.draw=bag[Math.floor(Math.random()*bag.length)];save();render();},
+  /* setup */
+  scen(e){S.setup.scen=e.dataset.v;save();render();},
+  addInv(){if(S.setup.invs.length<4){const used=S.setup.invs.map(r=>r.pick);const free=Object.keys(INV).find(k=>k!=='altro'&&!used.includes(k))||'altro';S.setup.invs.push({pick:free,player:'',tf:0,tm:0});save();render();}},
+  delInv(e){S.setup.invs.splice(+e.dataset.i,1);if(S.setup.lead>=S.setup.invs.length)S.setup.lead=0;save();render();},
+  fug(e){S.setup.fuggiti=Math.min(6,Math.max(0,S.setup.fuggiti+ +e.dataset.v));save();render();},
+  start(){startGame();},
+  /* menu */
+  close(){closeModal();},
+  newGame(){closeModal();S.game=null;UNDO=[];save();render();window.scrollTo(0,0);},
+  endScen(){openEnd();},
+  nextScen(){const g=G();const nx={adunanza:'maschere',maschere:'divoratore'}[g.scen]||g.scen;
+    S.setup.scen=nx;S.setup.diff=g.diff;S.setup.lead=g.lead;closeModal();S.game=null;UNDO=[];S.tab='round';save();render();window.scrollTo(0,0);}
+};
+
+/* ===================== RENDER ===================== */
+const ICONS={
+  round:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  team:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14.5c2.4 0 4 1.6 4.5 4"/></svg>',
+  bag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6c0-2 1.8-3 4-3s4 1 4 3"/><path d="M5 8h14l-1.5 12h-11z"/></svg>',
+  rules:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-4a3 3 0 0 0-3 3"/><path d="M20 4v14h-6"/></svg>'
+};
+function render(){
+  const app=document.getElementById('app');
+  document.getElementById('undoBtn').style.visibility=(S.game&&UNDO.length)?'visible':'hidden';
+  const tabs=[['round','Round'],['team','Squadra'],['bag','Caos'],['rules','Regole']];
+  document.getElementById('tabs').innerHTML=tabs.map(([k,l])=>`<button class="${S.tab===k?'on':''}" data-a="tab" data-v="${k}">${ICONS[k]}${l}</button>`).join('');
+  if(S.tab==='bag'){app.innerHTML=renderBag();return;}
+  if(S.tab==='rules'){app.innerHTML=RULES;return;}
+  if(!S.game){app.innerHTML=renderSetup();return;}
+  app.innerHTML=S.tab==='team'?renderTeam():renderRound();
+}
+
+function statusBar(g){
+  const t=thr(g),T=totDoom(g),a=agenda(g),c=act(g),req=actReq(g),gc=groupClues(g);
+  const phases=PH.map((p,i)=>`<div class="ph ${g.phase===i?'on':''} ${g.round===1&&i===0&&g.phase>=0?'skip':''}">${p}</div>`).join('');
+  const pct=t?Math.min(100,T/t*100):0;
+  return `<div class="status">
+  <div class="row between"><h2>${g.phase===-1?'Preparazione':'Round '+g.round}</h2><span class="small muted">${esc(sc(g).n)} · ${DIFF[g.diff].n}</span></div>
+  ${g.phase>=0?`<div class="phases">${phases}</div>`:''}
+  <div class="card" style="margin:0">
+    <div class="row between"><span class="lab small muted">TRAMA ${a?g.agenda+1+' · '+esc(a.n):'—'}</span>
+      ${a&&a.d==null?`<span class="row"><button class="sm" data-a="thrEdit" data-v="-1">−</button><span class="small">soglia ✎</span><button class="sm" data-a="thrEdit" data-v="1">+</button></span>`:''}</div>
+    ${a?`<div class="meter" style="margin:6px 0"><span class="big" style="color:var(--doom)">${T}<span class="muted" style="font-size:1rem">/${t}</span></span><div class="bar"><i style="width:${pct}%"></i></div></div>
+    <div class="row between small">
+      <div class="ctr"><button data-a="doom" data-v="-1">−</button><span class="v">${g.doom}</span><button data-a="doom" data-v="1">+</button><span class="muted">trama</span></div>
+      <div class="ctr"><button data-a="odoom" data-v="-1">−</button><span class="v">${g.odoom}</span><button data-a="odoom" data-v="1">+</button><span class="muted">altre carte</span></div>
+    </div>
+    ${T>=t&&!(g.phase===0&&g.step===2)?`<div class="note warn small">Soglia raggiunta. La trama prosegue nel passo «Controlla la soglia» della Fase dei Miti, salvo carte che dicono esplicitamente che possono farla proseguire (es. Mali Antichi).<div style="margin-top:6px"><button class="sm danger" data-a="advAgenda">Prosegui ora con la trama</button></div></div>`:''}`
+    :`<div class="note small">Ultima trama superata: seguite il retro della carta.</div>`}
+  </div>
+  <div class="card" style="margin:0">
+    <div class="row between"><span class="small muted">CAPITOLO ${c?g.act+1+' · '+esc(c.n):'—'}</span>${c?`<button class="sm" data-a="advAct">Prosegui ✓</button>`:''}</div>
+    ${c?(req!=null?`<div class="row small" style="margin-top:4px"><span>Indizi richiesti: <b>${req}</b></span><span class="muted">· il gruppo ne ha <b style="color:${gc>=req?'var(--ok)':'var(--clue)'}">${gc}</b></span></div><div class="small muted">Si spendono in qualsiasi momento del vostro turno, senza azioni; poi toglieteli dalle schede in «Squadra».</div>`
+      :`<div class="small" style="margin-top:4px">${c.obj}</div>`):`<div class="small muted">Nessun capitolo successivo: seguite il retro.</div>`}
+  </div></div>`;
+}
+
+function renderRound(){
+  const g=G(),st=steps(g),s=st[Math.min(g.step,st.length-1)];
+  const nextL=typeof s.next==='function'?s.next():(s.next||'Avanti');
+  const phaseName=g.phase===-1?'Preparazione':'Fase '+(g.phase===1?'degli ':'dei ')+PH[g.phase].replace('Gestione','')+(g.phase===3?'di Gestione':'');
+  let h=statusBar(g);
+  h+=`<div class="card"><div class="steph"><h3 class="grow">${s.t}</h3><span class="stepn">${phaseName.replace('Fase dei di Gestione','Fase di Gestione')} · passo ${g.step+1}/${st.length}</span></div>${s.b()}
+  ${s.alt?`<div style="margin-top:10px"><button data-a="${s.alt.a}">${s.alt.l}</button></div>`:''}
+  <div class="navbtns"><button data-a="prev" ${g.phase===-1&&g.step===0?'disabled':''}>‹ Indietro</button>
+  ${s.prim?`<button class="primary" data-a="${s.prim.a}">${s.prim.l}</button><button data-a="next">Salta ›</button>`:`<button class="primary" data-a="next">${nextL} ›</button>`}</div></div>`;
+  h+=`<details><summary>Registro degli eventi</summary><ul class="clean log">${g.log.map(l=>`<li>R${l.r} · ${esc(l.t)}</li>`).join('')}</ul></details>`;
+  return h;
+}
+
+function renderTeam(){
+  const g=G();
+  return `<h2 style="margin-bottom:10px">Squadra</h2><p class="small muted">Ordine di gioco: ${order(g).map(i=>esc(g.invs[i].name)).join(' → ')}</p>`+
+  order(g).map(i=>{const v=g.invs[i],d=INV[v.id];
+    const ctr=(a,val,max)=>`<div class="ctr"><button data-a="${a}" data-i="${i}" data-v="-1">−</button><span class="v">${val}${max!=null?'<span class="muted">/'+max+'</span>':''}</span><button data-a="${a}" data-i="${i}" data-v="1">+</button></div>`;
+    const defeated=v.dmg>=v.hp||v.hor>=v.san;
+    return `<div class="card ${v.out?'isout':''}">
+    <div class="row between"><div><b style="font-size:1.05rem">${invName(v)}</b> ${i===g.lead?'<span class="badge">Capo</span>':''} ${v.out?'<span class="badge out">Eliminato</span>':''}</div>
+      <span class="small muted">${esc(d.c)}</span></div>
+    ${d.sk?`<div class="skills" style="margin-top:4px"><span>Vol <b>${d.sk[0]}</b></span><span>Int <b>${d.sk[1]}</b></span><span>Sco <b>${d.sk[2]}</b></span><span>Agi <b>${d.sk[3]}</b></span></div>`:''}
+    ${defeated&&!v.out?`<div class="note warn small"><b>Sconfitto!</b> Trauma: fisico se per danni, mentale se per orrori (sceglie il giocatore se entrambi). Eliminazione: carte fuori gioco, indizi nel luogo, nemici disimpegnati restano lì.</div>`:''}
+    <div class="stats">
+      <div class="stat"><div class="k res">Risorse</div>${ctr('res',v.res)}</div>
+      <div class="stat"><div class="k clue">Indizi</div>${ctr('clue',v.clues)}</div>
+      <div class="stat"><div class="k hp">Danni</div>${ctr('dmg',v.dmg,v.hp)}</div>
+      <div class="stat"><div class="k san">Orrori</div>${ctr('hor',v.hor,v.san)}</div>
+    </div>
+    <div class="small muted" style="margin-top:8px"><b>Simbolo degli Antichi:</b> ${esc(d.es)}</div>
+    <div class="row" style="margin-top:8px">${i!==g.lead?`<button class="sm" data-a="lead" data-i="${i}">Rendi capo</button>`:''}<button class="sm ${v.out?'':'danger'}" data-a="out" data-i="${i}">${v.out?'Rientra':'Eliminato / ha abbandonato'}</button></div>
+    </div>`}).join('');
+}
+
+function bagOf(scen,diff){
+  const b=[...DIFF[diff].bag,'skull','skull','cultist','tablet','fail','sign'];
+  if(scen==='divoratore')b.push('elder');
+  return b;
+}
+function tokLabel(t){return TK[t]||t}
+function tokEffect(scen,diff,t){
+  if(t==='fail')return'La prova fallisce automaticamente (valore 0).';
+  if(t==='sign')return'Si applica l\'«Effetto di» dell\'investigatore che fa la prova.';
+  if(!TK[t])return'Modificatore '+t+' al valore di abilità.';
+  const T=SCEN[scen].tokens;if(!T)return'Vedi la carta di consultazione dello scenario.';
+  return T[DIFF[diff].side][t]||'—';
+}
+function renderBag(){
+  const g=G(),scen=g?g.scen:S.setup.scen,diff=g?g.diff:S.setup.diff,side=DIFF[diff].side;
+  const bag=bagOf(scen,diff);
+  const T=SCEN[scen].tokens;
+  let h=`<h2 style="margin-bottom:6px">Sacchetto del caos</h2><p class="small muted">${esc(SCEN[scen].n)} · ${DIFF[diff].n} · ${bag.length} segnalini</p>
+  <div class="card">${bag.map(t=>TK[t]?`<span class="tok s">${tokLabel(t)}</span>`:`<span class="tok">${t}</span>`).join('')}
+  ${scen==='divoratore'?'<div class="small muted" style="margin-top:6px">Include il segnalino Antico aggiunto per questo scenario (resta per il resto della campagna).</div>':''}</div>`;
+  h+=`<div class="card"><h3>Effetti dei simboli (lato ${side==='std'?'Facile/Standard':'Difficile/Esperto'})</h3><table>
+  ${['skull','cultist','tablet'].concat(T&&T[side].elder?['elder']:[]).map(t=>`<tr><td><b>${TK[t]}</b></td><td>${tokEffect(scen,diff,t)}</td></tr>`).join('')}
+  <tr><td><b>Simbolo degli Antichi</b></td><td>Effetto dell'investigatore (vedi «Squadra»).</td></tr>
+  <tr><td><b>Fallimento automatico</b></td><td>La prova fallisce.</td></tr></table></div>`;
+  h+=`<div class="card"><h3>Pesca di prova</h3><p class="small muted">Utile se il sacchetto non è a portata di mano.</p>
+  ${S.draw?`<div class="draw">${tokLabel(S.draw)}</div><p class="small" style="text-align:center">${tokEffect(scen,diff,S.draw)}</p>`:''}
+  <button class="primary" style="width:100%" data-a="draw">Pesca un segnalino</button></div>`;
+  h+=`<details><summary>Prova di abilità, passo per passo</summary><ol class="small" style="padding-left:20px;margin:0">
+  <li>Si sceglie l'abilità e la difficoltà.</li><li>Investite carte con l'icona giusta o jolly: chi fa la prova quante vuole, ogni altro investigatore nello stesso luogo 1 carta. +1 per icona.</li>
+  <li>Rivelate 1 segnalino e applicate il suo effetto.</li><li>Valore = abilità + icone + segnalino + capacità (minimo 0).</li>
+  <li>Valore ≥ difficoltà → successo. Applicate i risultati.</li><li>Scartate le carte investite e rimettete il segnalino nel sacchetto.</li></ol></details>`;
+  return h;
+}
+
+function renderSetup(){
+  const s=S.setup;
+  const opt=(k)=>`<div class="opt ${s.scen===k?'on':''}" data-a="scen" data-v="${k}"><b>${esc(SCEN[k].n)}</b></div>`;
+  let h=`<h2 style="margin-bottom:4px">Nuova partita</h2><p class="small muted">Imposta scenario e investigatori: l'app ti guida poi nella preparazione e in ogni fase del round.</p>
+  <div class="card"><h3>Scenario</h3><div class="opts">${Object.keys(SCEN).map(opt).join('')}</div>
+  <label class="f">Difficoltà</label><select data-f="diff">${Object.entries(DIFF).map(([k,d])=>`<option value="${k}" ${s.diff===k?'selected':''}>${d.n}</option>`).join('')}</select></div>`;
+  h+=`<div class="card"><div class="row between"><h3>Investigatori (${s.invs.length})</h3>${s.invs.length<4?'<button class="sm" data-a="addInv">+ Aggiungi</button>':''}</div>`;
+  s.invs.forEach((r,i)=>{
+    h+=`<div class="invrow"><div class="row between"><b>Giocatore ${i+1}</b>${s.invs.length>1?`<button class="sm ghost" data-a="delInv" data-i="${i}">Rimuovi</button>`:''}</div>
+    <div class="grid2"><div><label class="f">Investigatore</label><select data-f="pick" data-i="${i}">${Object.entries(INV).map(([k,d])=>`<option value="${k}" ${r.pick===k?'selected':''}>${esc(d.n)}</option>`).join('')}</select></div>
+    <div><label class="f">Nome giocatore</label><input type="text" data-f="player" data-i="${i}" value="${esc(r.player||'')}" placeholder="facoltativo"></div></div>
+    ${r.pick==='altro'?`<div class="grid2"><div><label class="f">Nome investigatore</label><input type="text" data-f="cname" data-i="${i}" value="${esc(r.cname||'')}"></div><div class="grid2"><div><label class="f">Salute</label><input type="number" data-f="chp" data-i="${i}" value="${r.chp||7}"></div><div><label class="f">Sanità</label><input type="number" data-f="csan" data-i="${i}" value="${r.csan||7}"></div></div></div>`:''}
+    <div class="grid2"><div><label class="f">Trauma fisico</label><input type="number" min="0" data-f="tf" data-i="${i}" value="${r.tf||0}"></div><div><label class="f">Trauma mentale</label><input type="number" min="0" data-f="tm" data-i="${i}" value="${r.tm||0}"></div></div></div>`;
+  });
+  const dup=s.invs.map(r=>r.pick).filter((p,i,a)=>p!=='altro'&&a.indexOf(p)!==i);
+  if(dup.length)h+=`<div class="note warn small">Ogni giocatore deve usare un investigatore diverso.</div>`;
+  h+=`<label class="f">Investigatore capo</label><select data-f="lead">${s.invs.map((r,i)=>`<option value="${i}" ${s.lead==i?'selected':''}>Giocatore ${i+1} — ${esc(r.pick==='altro'?(r.cname||'Altro'):INV[r.pick].n)}</option>`).join('')}</select>
+  <p class="small muted">Ordine di gioco: il capo, poi in senso orario (l'ordine della lista).</p></div>`;
+  if(s.scen==='maschere'||s.scen==='divoratore'){
+    h+=`<div class="card"><h3>Dal Diario della Campagna</h3>`;
+    if(s.scen==='maschere')h+=`<label class="f">La vostra casa</label><select data-f="house"><option value="piedi" ${s.house==='piedi'?'selected':''}>È ancora in piedi</option><option value="rasa" ${s.house==='rasa'?'selected':''}>È stata rasa al suolo</option></select>`;
+    if(s.scen==='divoratore')h+=`<label class="f">Nomi sotto «Cultisti Fuggiti»</label><div class="ctr"><button data-a="fug" data-v="-1">−</button><span class="v">${s.fuggiti}</span><button data-a="fug" data-v="1">+</button></div>
+      <div class="check ${s.midnight?'done':''}" data-a="setTog" data-v="midnight"><span class="box">${CHK}</span><span class="lbl">È passata la mezzanotte</span></div>`;
+    h+=`<div class="check ${s.priest?'done':''}" data-a="setTog" data-v="priest"><span class="box">${CHK}</span><span class="lbl">Il Ghoul Sacerdote è ancora vivo</span></div></div>`;
+  }
+  h+=`<button class="primary" style="width:100%;min-height:50px" data-a="start" ${dup.length?'disabled':''}>Inizia la preparazione ›</button>`;
+  return h;
+}
+H.setTog=e=>{const k=e.dataset.v;S.setup[k]=!S.setup[k];save();render();};
+
+const RULES=`<h2 style="margin-bottom:10px">Regole rapide</h2>
+<details open><summary>Sequenza del round</summary><ol class="small" style="padding-left:20px;margin:0">
+<li><b>Miti</b> (non al 1° round): +1 destino sulla trama → controllo soglia → ognuno pesca 1 carta incontro.</li>
+<li><b>Investigatori</b>: ognuno fa un turno di 3 azioni, nell'ordine che volete.</li>
+<li><b>Nemici</b>: i Cacciatori si muovono → i nemici pronti e impegnati attaccano.</li>
+<li><b>Gestione</b>: ripristino → 1 carta e 1 risorsa a testa → limite di mano 8.</li></ol></details>
+<details><summary>Azioni</summary>${ACTIONS_TABLE}
+<div class="note small"><b>Attacchi di opportunità:</b> se sei impegnato con nemici pronti, ogni azione tranne Combattimento, Elusione e capacità Abbandona/Negozia provoca un attacco da ognuno, dopo aver pagato i costi e prima dell'effetto. Non esauriscono il nemico. Una capacità che costa più azioni provoca un solo attacco.</div></details>
+<details><summary>Nemici</summary><ul class="bul small">
+<li>Ti impegna se: generato pronto nel tuo luogo, si ripristina nel tuo luogo, si muove pronto nel tuo luogo, o entri tu nel suo.</li>
+<li><b>Preda</b>: decide chi impegna o chi insegue a parità.</li>
+<li><b>Cacciatore</b>: si muove nella Fase dei Nemici verso l'investigatore più vicino.</li>
+<li><b>Ritorsione</b>: se fallisci un attacco contro di lui mentre è pronto, ti attacca.</li>
+<li><b>Massiccio</b>: impegnato con tutti nel suo luogo, non ti segue.</li>
+<li>Attacco fallito contro un nemico impegnato con un compagno: il danno va al compagno.</li>
+<li>Sconfitto → scarti degli incontri; con Vittoria → galleria delle vittorie.</li></ul></details>
+<details><summary>Danni, orrori e sconfitta</summary><ul class="bul small">
+<li>Si assegnano su investigatore e supporti con Salute/Sanità; i danni/orrori <b>diretti</b> solo sull'investigatore.</li>
+<li>Danni ≥ Salute o orrori ≥ Sanità → sconfitto: 1 trauma fisico o mentale.</li>
+<li>Chi abbandona non è sconfitto e non subisce traumi.</li>
+<li>Eliminato: le sue carte escono, gli indizi restano nel luogo, i nemici si disimpegnano ma restano lì.</li>
+<li>Gli eliminati contano ancora per i valori «per investigatore».</li></ul></details>
+<details><summary>Parole chiave</summary><ul class="bul small">
+<li><b>Impulso</b>: pesca un'altra carta incontro.</li><li><b>Isolamento</b>: nessun aiuto da altri per quella carta.</li>
+<li><b>Veloce</b>: non costa azioni.</li><li><b>Utilizzo (X)</b>: X segnalini (munizioni, cariche…), non risorse.</li>
+<li><b>Unico (•)</b>: una sola copia in gioco.</li><li><b>Obbligo</b>: si risolve da solo, prima delle reazioni.</li>
+<li><b>Per investigatore</b>: moltiplica per chi ha iniziato lo scenario.</li>
+<li><b>Regola nera</b>: nel dubbio, la soluzione peggiore per gli investigatori.</li></ul></details>
+<details><summary>Fine dello scenario</summary><ul class="bul small">
+<li>Galleria delle vittorie: nemici e sventure con Vittoria, più i <b>luoghi con Vittoria in gioco, aperti e senza indizi</b>.</li>
+<li>XP = punti Vittoria + bonus della risoluzione.</li>
+<li>Carta nuova: XP pari al livello (minimo 1). Miglioramento: differenza di livello.</li></ul></details>
+<p class="small muted">Fonte: Compendio delle Regole e Guida alla Campagna. Il testo delle carte prevale sempre.</p>`;
+
+/* ===================== MODALE ===================== */
+function openModal(html){document.getElementById('sheet').innerHTML=html;document.getElementById('modal').classList.add('on');}
+function closeModal(){document.getElementById('modal').classList.remove('on');}
+function openMenu(){
+  const g=G();
+  openModal(`<h2 style="margin-bottom:12px">Menu</h2><div class="opts">
+  ${g?`<button data-a="endScen">Fine scenario…</button>`:''}
+  <button class="${g?'danger':''}" data-a="newGame">${g?'Abbandona e inizia una nuova partita':'Nuova partita'}</button>
+  <button class="ghost" data-a="close">Chiudi</button></div>
+  <p class="small muted" style="margin-top:12px">La partita resta salvata su questo dispositivo anche se chiudi la pagina.</p>`);
+}
+function openEnd(){
+  const g=G();
+  openModal(`<h2 style="margin-bottom:8px">Fine scenario</h2>
+  <ul class="bul small">
+  <li>Aggiungete alla galleria delle vittorie i luoghi con Vittoria in gioco, aperti e senza indizi.</li>
+  <li>Leggete la risoluzione raggiunta nella Guida alla Campagna e annotate appunti, XP e traumi nel Diario.</li>
+  <li>Chi è stato sconfitto subisce il trauma (fisico per danni, mentale per orrori).</li>
+  <li>Spendete gli XP prima del prossimo scenario.</li></ul>
+  <div class="opts" style="margin-top:12px">
+  ${g.scen!=='divoratore'&&g.scen!=='generico'?`<button class="primary" data-a="nextScen">Prepara il prossimo scenario</button>`:''}
+  <button data-a="newGame">Torna alla schermata iniziale</button><button class="ghost" data-a="close">Continua a giocare</button></div>`);
+}
+
+/* ===================== EVENTI ===================== */
+document.addEventListener('click',e=>{
+  if(e.target.id==='modal'){closeModal();return;}
+  const el=e.target.closest('[data-a]');if(!el)return;
+  const f=H[el.dataset.a];if(f)f(el);
+});
+function setField(el,rerender){
+  const f=el.dataset.f,i=el.dataset.i,v=el.value;
+  if(i!=null){const r=S.setup.invs[+i];r[f]=(['tf','tm','chp','csan'].includes(f))?Math.max(0,+v||0):v;}
+  else S.setup[f]=f==='lead'?+v:v;
+  save();if(rerender)render();
+}
+document.addEventListener('change',e=>{if(e.target.dataset.f)setField(e.target,true);});
+document.addEventListener('input',e=>{if(e.target.dataset.f&&e.target.tagName==='INPUT')setField(e.target,false);});
+render();
+</script>
+</body>
+</html>
