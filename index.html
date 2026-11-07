@@ -106,6 +106,25 @@ details{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin
 details summary{cursor:pointer;font-family:Cinzel,serif;color:var(--gold2);font-weight:600}
 details[open] summary{margin-bottom:8px}
 .log li{font-size:.82rem;color:var(--mut);padding:3px 0;border-bottom:1px dashed var(--line)}
+.tk{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3d433f,#151916 75%);border:2px solid #59615b;color:var(--c,#e9e5d8);font-weight:800;font-size:.95rem;margin:3px;box-shadow:inset 0 -3px 5px rgba(0,0,0,.55),0 1px 2px rgba(0,0,0,.4);font-variant-numeric:tabular-nums;vertical-align:middle}
+.tk svg{width:74%;height:74%;display:block}
+.tk.sm{width:30px;height:30px;margin:0;font-size:.8rem}
+.tk.lg{width:124px;height:124px;border-width:4px;font-size:2.8rem;box-shadow:inset 0 -6px 12px rgba(0,0,0,.6),0 6px 22px rgba(0,0,0,.6),0 0 0 6px rgba(202,167,90,.12)}
+.tk-fail{border-color:#7a2f29}.tk-sign{border-color:#8a7440}
+.tkrow{display:flex;flex-wrap:wrap}
+td.tkcell{white-space:nowrap}td.tkcell span{margin-left:8px;font-weight:600;vertical-align:middle}
+.stage{height:170px;display:grid;place-items:center;perspective:600px}
+.bagsvg{width:118px;height:auto;transform-origin:50% 25%;filter:drop-shadow(0 8px 10px rgba(0,0,0,.5))}
+.shaking .bagsvg{animation:shake .85s ease-in-out}
+@keyframes shake{0%,100%{transform:rotate(0)}12%{transform:rotate(-14deg) translateX(-4px)}26%{transform:rotate(12deg) translateX(4px)}40%{transform:rotate(-10deg)}54%{transform:rotate(8deg)}68%{transform:rotate(-5deg) translateY(-3px)}84%{transform:rotate(3deg) scale(1.04,.96)}}
+.pop{animation:pop .75s cubic-bezier(.2,1.3,.4,1)}
+@keyframes pop{0%{transform:translateY(70px) scale(.15) rotateY(720deg);opacity:0}55%{opacity:1}100%{transform:none}}
+.failfx .tk{animation:redflash 1.2s .5s}.signfx .tk{animation:goldflash 1.2s .5s}
+@keyframes redflash{0%,100%{}40%{box-shadow:0 0 0 10px rgba(236,94,80,.35),0 0 40px rgba(236,94,80,.7)}}
+@keyframes goldflash{0%,100%{}40%{box-shadow:0 0 0 10px rgba(242,210,122,.3),0 0 40px rgba(242,210,122,.7)}}
+.fadein{animation:fadein .5s .35s both}@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.drawname{font-family:Cinzel,serif;color:var(--gold2);font-size:1.25rem;font-weight:700;margin-top:4px}
+@media (prefers-reduced-motion:reduce){.pop,.shaking .bagsvg,.fadein,.failfx .tk,.signfx .tk{animation:none}}
 /* modal */
 #modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center}
 #modal.on{display:flex}
@@ -181,6 +200,7 @@ function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}if(S.ga
 function newId(){return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function defaultName(scen,names){const d=new Date();return `${SCEN[scen].n.replace(/^[IV]+ · /,'')} — ${names.join(', ')} — ${d.toLocaleDateString('it-IT')}`}
 let S=load()||{setup:freshSetup(),game:null,tab:'round',draw:null};
+S.drawing=false;S.justDrew=false;
 if(S.game&&!S.game.id){S.game.id=newId();S.game.name=defaultName(S.game.scen,S.game.invs.map(v=>v.name));}
 let UNDO=[];
 const G=()=>S.game;
@@ -410,7 +430,10 @@ const H={
   hor(e){mut(()=>{const g=G(),v=g.invs[e.dataset.i];v.hor=Math.max(0,v.hor+ +e.dataset.v);if(v.hor>=v.san&&!v.out)log(g,v.name+' ha orrori ≥ Sanità: sconfitto!');});},
   out(e){mut(()=>{const g=G(),v=g.invs[e.dataset.i];v.out=!v.out;log(g,v.name+(v.out?' eliminato (sconfitto o ha abbandonato)':' rientra'));});},
   lead(e){mut(()=>{G().lead=+e.dataset.i;});},
-  draw(){const g=G();const bag=bagOf(g?g.scen:S.setup.scen,g?g.diff:S.setup.diff);S.draw=bag[Math.floor(Math.random()*bag.length)];save();render();},
+  draw(){if(S.drawing)return;const g=G();const bag=bagOf(g?g.scen:S.setup.scen,g?g.diff:S.setup.diff);
+    const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    S.drawing=true;render();const w=document.getElementById('bagwrap');if(w)w.classList.add('shaking');
+    setTimeout(()=>{S.drawing=false;S.draw=bag[Math.floor(Math.random()*bag.length)];S.justDrew=true;save();render();},reduce?150:850);},
   /* setup */
   scen(e){S.setup.scen=e.dataset.v;save();render();},
   addInv(){if(S.setup.invs.length<4){const used=S.setup.invs.map(r=>r.pick);const free=Object.keys(INV).find(k=>k!=='altro'&&!used.includes(k))||'altro';S.setup.invs.push({pick:free,player:'',tf:0,tm:0});save();render();}},
@@ -546,20 +569,42 @@ function tokEffect(scen,diff,t){
   const T=SCEN[scen].tokens;if(!T)return'Vedi la carta di consultazione dello scenario.';
   return T[DIFF[diff].side][t]||'—';
 }
+const TKC={skull:'#e6dfcc',cultist:'#c49be6',tablet:'#8fd3bd',elder:'#eba65a',sign:'#f2d27a',fail:'#ec5e50'};
+const TKSVG={
+ skull:'<path d="M20 6.5c-7.2 0-11.8 4.9-11.8 11.3 0 3.7 1.6 6.4 4.1 8V30a2 2 0 0 0 2 2h11.4a2 2 0 0 0 2-2v-4.2c2.5-1.6 4.1-4.3 4.1-8C31.8 11.4 27.2 6.5 20 6.5z" fill="currentColor"/><circle cx="15.4" cy="18.8" r="3.1" fill="#141816"/><circle cx="24.6" cy="18.8" r="3.1" fill="#141816"/><path d="M20 22.2l-1.7 3.2h3.4z" fill="#141816"/><path d="M16.6 32v-3.2M20 32v-3.2M23.4 32v-3.2" stroke="#141816" stroke-width="1.5"/>',
+ cultist:'<path d="M20 5c-6.3 0-10.4 6.2-10.4 13.6V34h20.8V18.6C30.4 11.2 26.3 5 20 5z" fill="currentColor"/><path d="M20 11.5c-3.7 0-6.2 3.6-6.2 8.2 0 3.1 1 5.7 2.6 7.3h7.2c1.6-1.6 2.6-4.2 2.6-7.3 0-4.6-2.5-8.2-6.2-8.2z" fill="#141816"/><circle cx="17.5" cy="19.4" r="1.4" fill="#ff5a4a"/><circle cx="22.5" cy="19.4" r="1.4" fill="#ff5a4a"/>',
+ tablet:'<path d="M10.5 33.5V14.5a9.5 7.5 0 0 1 19 0v19z" fill="currentColor"/><path d="M15 15.5h10M15 20.5h3.5l2 3 2-3H25M15 27h3.5m3 0H25" stroke="#141816" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+ elder:'<g stroke="currentColor" stroke-width="2.7" fill="none" stroke-linecap="round"><path d="M20 20c-2.5-6 2.5-9 0-14.5"/><path d="M20 20c5-3.5 9 0 13.5-3"/><path d="M20 20c5 3 5.5 8.5 10.5 11"/><path d="M20 20c-2 5-6.5 7-6 13.5"/><path d="M20 20c-6 1.5-8.5-3-13.5-1"/></g><circle cx="20" cy="20" r="5.8" fill="currentColor"/><circle cx="20" cy="20" r="2.2" fill="#141816"/>',
+ sign:'<path d="M20 4.5l4.3 10.6 11.3.9-8.6 7.4 2.7 11.1L20 28.5l-9.7 6 2.7-11.1L4.4 16l11.3-.9z" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/><path d="M13.8 20.2c3.6-4.2 8.8-4.2 12.4 0-3.6 4.2-8.8 4.2-12.4 0z" fill="currentColor"/><circle cx="20" cy="20.2" r="1.9" fill="#141816"/>',
+ fail:'<circle cx="20" cy="20" r="13" fill="none" stroke="currentColor" stroke-width="3.2"/><path d="M14 14l12 12M26 14L14 26" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/>'
+};
+function tokDisc(t,cls){
+  if(TK[t])return `<span class="tk ${cls||''} tk-${t}" style="--c:${TKC[t]}" title="${TK[t]}"><svg viewBox="0 0 40 40" aria-label="${TK[t]}">${TKSVG[t]}</svg></span>`;
+  const pos=t.startsWith('+');
+  return `<span class="tk num ${cls||''}" style="--c:${pos?'#8fe39a':t==='0'?'#e9e5d8':'#f0b9a8'}">${t}</span>`;
+}
+const BAGSVG=`<svg class="bagsvg" viewBox="0 0 120 130"><defs><radialGradient id="bg1" cx="40%" cy="35%" r="75%"><stop offset="0" stop-color="#5a4a35"/><stop offset="1" stop-color="#2a2016"/></radialGradient></defs>
+<path d="M44 30c-4-8-2-16 4-19 4 3 8 6 12 6s8-3 12-6c6 3 8 11 4 19z" fill="#3b2e20" stroke="#1c150e" stroke-width="2"/>
+<path d="M42 32C20 48 12 74 16 96c4 20 22 30 44 30s40-10 44-30c4-22-4-48-26-64z" fill="url(#bg1)" stroke="#1c150e" stroke-width="2.5"/>
+<path d="M40 33c12 4 28 4 40 0" stroke="#caa75a" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M60 35c-3 8 2 12-4 20" stroke="#caa75a" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="55" cy="57" r="3.5" fill="#caa75a"/>
+<path d="M60 70l5 10 11 1-8 7 3 11-11-6-11 6 3-11-8-7 11-1z" fill="none" stroke="#caa75a" stroke-opacity=".45" stroke-width="2"/></svg>`;
 function renderBag(){
   const g=G(),scen=g?g.scen:S.setup.scen,diff=g?g.diff:S.setup.diff,side=DIFF[diff].side;
   const bag=bagOf(scen,diff);
   const T=SCEN[scen].tokens;
-  let h=`<h2 style="margin-bottom:6px">Sacchetto del caos</h2><p class="small muted">${esc(SCEN[scen].n)} · ${DIFF[diff].n} · ${bag.length} segnalini</p>
-  <div class="card">${bag.map(t=>TK[t]?`<span class="tok s">${tokLabel(t)}</span>`:`<span class="tok">${t}</span>`).join('')}
+  let h=`<h2 style="margin-bottom:6px">Sacchetto del caos</h2><p class="small muted">${esc(SCEN[scen].n)} · ${DIFF[diff].n} · ${bag.length} segnalini</p>`;
+  const anim=S.justDrew;S.justDrew=false;
+  h+=`<div class="card"><div class="stage" id="stage">${S.draw&&!S.drawing?`<div class="${anim?'pop':''} ${anim&&S.draw==='fail'?'failfx':''} ${anim&&S.draw==='sign'?'signfx':''}">${tokDisc(S.draw,'lg')}</div>`:`<div id="bagwrap">${BAGSVG}</div>`}</div>
+  ${S.draw&&!S.drawing?`<div class="${anim?'fadein':''}" style="text-align:center"><div class="drawname">${TK[S.draw]||('Modificatore '+S.draw)}</div><p class="small">${tokEffect(scen,diff,S.draw)}</p></div>`:''}
+  <button class="primary" style="width:100%" data-a="draw" ${S.drawing?'disabled':''}>${S.drawing?'Pescando…':S.draw?'Pesca di nuovo':'Pesca un segnalino'}</button>
+  <p class="small muted" style="text-align:center;margin:8px 0 0">Utile se il sacchetto vero non è a portata di mano.</p></div>`;
+  h+=`<div class="card"><h3>Contenuto</h3><div class="tkrow">${bag.map(t=>tokDisc(t)).join('')}</div>
   ${scen==='divoratore'?'<div class="small muted" style="margin-top:6px">Include il segnalino Antico aggiunto per questo scenario (resta per il resto della campagna).</div>':''}</div>`;
   h+=`<div class="card"><h3>Effetti dei simboli (lato ${side==='std'?'Facile/Standard':'Difficile/Esperto'})</h3><table>
-  ${['skull','cultist','tablet'].concat(T&&T[side].elder?['elder']:[]).map(t=>`<tr><td><b>${TK[t]}</b></td><td>${tokEffect(scen,diff,t)}</td></tr>`).join('')}
-  <tr><td><b>Simbolo degli Antichi</b></td><td>Effetto dell'investigatore (vedi «Squadra»).</td></tr>
-  <tr><td><b>Fallimento automatico</b></td><td>La prova fallisce.</td></tr></table></div>`;
-  h+=`<div class="card"><h3>Pesca di prova</h3><p class="small muted">Utile se il sacchetto non è a portata di mano.</p>
-  ${S.draw?`<div class="draw">${tokLabel(S.draw)}</div><p class="small" style="text-align:center">${tokEffect(scen,diff,S.draw)}</p>`:''}
-  <button class="primary" style="width:100%" data-a="draw">Pesca un segnalino</button></div>`;
+  ${['skull','cultist','tablet'].concat(T&&T[side].elder?['elder']:[]).map(t=>`<tr><td class="tkcell">${tokDisc(t,'sm')}<span>${TK[t]}</span></td><td>${tokEffect(scen,diff,t)}</td></tr>`).join('')}
+  <tr><td class="tkcell">${tokDisc('sign','sm')}<span>Simbolo degli Antichi</span></td><td>Effetto dell'investigatore (vedi «Squadra»).</td></tr>
+  <tr><td class="tkcell">${tokDisc('fail','sm')}<span>Fallimento automatico</span></td><td>La prova fallisce.</td></tr></table></div>`;
   h+=`<details><summary>Prova di abilità, passo per passo</summary><ol class="small" style="padding-left:20px;margin:0">
   <li>Si sceglie l'abilità e la difficoltà.</li><li>Investite carte con l'icona giusta o jolly: chi fa la prova quante vuole, ogni altro investigatore nello stesso luogo 1 carta. +1 per icona.</li>
   <li>Rivelate 1 segnalino e applicate il suo effetto.</li><li>Valore = abilità + icone + segnalino + capacità (minimo 0).</li>
