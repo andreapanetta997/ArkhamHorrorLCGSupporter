@@ -1,6 +1,6 @@
 # Arkham Horror LCG Supporter
 
-Versione attuale: **0.0.8** — vedi [CHANGELOG.md](CHANGELOG.md).
+Versione attuale: **0.0.9** — vedi [CHANGELOG.md](CHANGELOG.md).
 
 Web app (un solo file `index.html`, nessuna dipendenza) per guidare passo passo una partita ad **Arkham Horror: Il Gioco di Carte** — Set Base, campagna *La Notte della Zelota*.
 
@@ -21,7 +21,8 @@ La guida crea il tavolo dal menu ☰ → **Tavolo online**: ogni giocatore ricev
 - La sincronizzazione usa un segnale vuoto sul canale Realtime `ah-<id>`; i dati si rileggono tramite le funzioni.
 - Il progetto Supabase gratuito va in pausa dopo 7 giorni senza attività: se serve, riattivalo dalla dashboard prima di giocare.
 - Funziona dal sito GitHub Pages (non dall'anteprima in chat di Claude, che blocca le connessioni esterne).
-- Dati delle carte: ArkhamDB (arkhamdb-json-data), testo italiano.
+- Dati delle carte: ArkhamDB (arkhamdb-json-data), testo italiano. Il Set Base è dentro `index.html`, tutte le altre carte giocatore in `cards-all.json` (caricato su richiesta).
+- Immagini delle carte: le carica la guida a mano (menu ☰ → Immagini delle carte) in una libreria privata su Supabase (`ah_libs`, `ah_images`). Il repository non contiene immagini delle carte.
 
 ## Uso
 Apri `index.html` nel browser (telefono o PC). Con GitHub Pages attivo sul branch `main` è raggiungibile online.

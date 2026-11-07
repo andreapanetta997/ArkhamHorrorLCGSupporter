@@ -2,6 +2,12 @@
 
 Numerazione: si parte da 0.0.5 e ogni modifica aumenta di 0.0.1. La 1.0.0 sarà la prima versione ufficiale.
 
+## [0.0.9] — 2026-11-07
+- **Tutte le carte giocatore**: dati di tutte le espansioni presi da ArkhamDB (1.687 carte, testo italiano dove disponibile) nel file `cards-all.json`, caricato su richiesta. Ricerca, consultazione e import ora coprono qualsiasi mazzo, non solo il Set Base.
+- **Immagini caricate a mano**: menu ☰ → «Immagini delle carte» crea una libreria privata (chiave della guida). Si carica una carta dalla sua anteprima («Carica immagine») o molte insieme con il codice ArkhamDB nel nome del file (es. `01016.jpg`). Le immagini restano nel database, non nel repository; le vedono solo i dispositivi con la chiave e i giocatori dei tavoli collegati.
+- Anteprima: mostra l'immagine se c'è, con il pulsante per passare al testo; miniature con bordo dorato quando l'immagine è disponibile.
+- Costo X mostrato correttamente (e non pagato in automatico).
+
 ## [0.0.8] — 2026-11-07
 - **Anteprima delle carte**: ogni carta (mano, in gioco, area di minaccia, mazzo, scarti, ricerca, scheda della guida e investigatore) ha una miniatura col colore della classe e il costo; toccandola si apre la carta disegnata con testo, icone, tratti, slot, Salute/Sanità e il link alla carta originale su ArkhamDB.
 - **Import da ArkhamDB**: in «Il tuo mazzo» → «Importa da ArkhamDB», con link o numero del mazzo, JSON o testo esportato (Download → Text file). Carte fuori dal Set Base segnalate e saltate; debolezza base casuale sostituita; avviso se il mazzo è per un altro investigatore.

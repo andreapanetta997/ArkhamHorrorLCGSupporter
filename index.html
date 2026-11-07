@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Guida al Round — Arkham Horror LCG</title>
-<meta name="version" content="0.0.8">
+<meta name="version" content="0.0.9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -168,6 +168,10 @@ details.cdet{border:0;padding:0;margin:6px 0 0;background:none}details.cdet summ
 .cf-tx{padding:8px 12px 10px;line-height:1.45}
 .cf-tx hr{border:0;border-top:1px dashed rgba(0,0,0,.25);margin:8px 0}
 .cf-bot{background:rgba(0,0,0,.08);padding:7px 12px;font-size:.8rem;font-weight:600;border-top:1px solid rgba(0,0,0,.12)}
+
+.cthumb.hasimg{box-shadow:0 0 0 2px var(--gold),0 1px 2px rgba(0,0,0,.5)}
+.cvimg{display:block;width:100%;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.cvload{height:300px;display:grid;place-items:center;color:var(--mut);border:1px dashed var(--line);border-radius:14px}
 /* modal */
 #modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center}
 #modal.on{display:flex}
@@ -189,7 +193,7 @@ details.cdet{border:0;padding:0;margin:6px 0 0;background:none}details.cdet summ
 
 <script>
 /* ===================== DATI ===================== */
-const APP_VERSION='0.0.8';
+const APP_VERSION='0.0.9';
 const LS='ahlcg-guida-round-v1';
 const INV={
   roland:{n:'Roland Banks',c:'Guardiano',hp:9,san:5,sk:[3,3,4,2],ab:'Reazione: dopo che hai sconfitto un nemico, scopri 1 indizio nel tuo luogo (1 volta per round).',es:'+1 per ogni indizio nel tuo luogo.'},
@@ -802,7 +806,52 @@ const CARDS=[{"id":0,"n":"Debolezza Base Casuale","en":"Random Basic Weakness","
 /* ===================== TAVOLO ONLINE (Supabase) ===================== */
 const SB_URL='https://oxpccbmfnbxukgbrdodo.supabase.co';
 const SB_KEY='sb_publishable_hPBjowNY4gUOv5cMsoxADg_oB-5wX8s';
-const CARD={};CARDS.forEach(c=>CARD[c.id]=c);
+const CARDBASE={};CARDS.forEach(c=>CARDBASE[c.id]=c);
+let ALLCARDS=[],ALL_STATE='no';
+const CARD=new Proxy(CARDBASE,{get(t,k){if(k in t)return t[k];if(typeof k==='string'&&/^\w{1,8}$/.test(k))return {id:k,n:'Carta '+k,t:'?',f:'N',tx:ALL_STATE==='ok'?'Carta non trovata nei dati di ArkhamDB.':'Caricamento dei dati delle carte…'};return undefined;}});
+async function loadAllCards(){
+  if(ALL_STATE==='ok')return true;if(ALL_STATE==='loading')return loadAllCards._p;
+  ALL_STATE='loading';
+  loadAllCards._p=fetch('cards-all.json').then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}).then(a=>{ALLCARDS=a;a.forEach(c=>CARDBASE[c.id]=c);ALL_STATE='ok';render();return true;})
+    .catch(()=>{ALL_STATE='err';return false;});
+  return loadAllCards._p;
+}
+/* ---------- libreria immagini (privata, su Supabase) ---------- */
+let LIBKEY=null;try{LIBKEY=localStorage.getItem('ahlcg-libkey');}catch(e){}
+let IMGLIST=new Set();const IMGS={};let IMG_AUTH=null;
+function imgAuth(){return PL.on?PL.code:(LIBKEY||(S.game&&S.game.online?S.game.online.token:null));}
+async function refreshImgList(force){
+  const a=imgAuth();if(!a){IMGLIST=new Set();IMG_AUTH=null;return;}
+  if(a===IMG_AUTH&&!force)return;IMG_AUTH=a;
+  try{const l=await rpc('ah_lib_list',{p_auth:a});IMGLIST=new Set(l||[]);render();}catch(e){}
+}
+async function fetchImgs(codes){
+  const a=imgAuth();if(!a)return;
+  for(let i=0;i<codes.length;i+=30){try{const r=await rpc('ah_lib_get',{p_auth:a,p_codes:codes.slice(i,i+30)});Object.assign(IMGS,r||{});}catch(e){}}
+}
+function fileToDataURL(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{
+  const max=640,sc=Math.min(1,max/Math.max(im.width,im.height));const cv=document.createElement('canvas');cv.width=Math.round(im.width*sc);cv.height=Math.round(im.height*sc);
+  cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);let q=.85,d=cv.toDataURL('image/jpeg',q);while(d.length>600000&&q>.4){q-=.1;d=cv.toDataURL('image/jpeg',q);}res(d);};
+  im.onerror=()=>rej(new Error('file non leggibile come immagine'));im.src=fr.result;};fr.onerror=()=>rej(fr.error);fr.readAsDataURL(file);});}
+function pickFiles(multiple){return new Promise(res=>{const inp=document.createElement('input');inp.type='file';inp.accept='image/*';if(multiple)inp.multiple=true;
+  inp.onchange=()=>res([...inp.files]);inp.click();});}
+async function uploadImg(code,file){const d=await fileToDataURL(file);await rpc('ah_lib_put',{p_key:LIBKEY,p_code:code,p_img:d});IMGS[code]=d;IMGLIST.add(code);}
+let LINKING=false;
+function linkLibToTable(){const g=S.game;if(!LINKING&&LIBKEY&&g&&g.online&&g.online.lib!==LIBKEY){LINKING=true;rpc('ah_host_set_lib',{p_token:g.online.token,p_key:LIBKEY}).then(()=>{g.online.lib=LIBKEY;save();ping();}).catch(e=>toast('Non riesco a collegare le immagini al tavolo: '+e.message,true)).finally(()=>{LINKING=false;});}}
+function openLibrary(){
+  const n=IMGLIST.size;
+  openModal(`<h2 style="margin-bottom:8px">Immagini delle carte</h2>
+  <p class="small muted">Le immagini che carichi restano in una libreria privata nel database del tavolo (non nel repository). Le vedono solo i dispositivi con questa chiave e i giocatori dei tuoi tavoli online.</p>
+  ${LIBKEY?`<div class="note okbox small">Libreria attiva · <b>${n}</b> immagini caricate.</div>
+    <h3 style="margin-top:10px">Carica più immagini</h3><p class="small muted">Il nome di ogni file deve contenere il codice ArkhamDB della carta (es. <b>01016.jpg</b> per l'Automatica Calibro 45; il codice è nell'indirizzo della carta su ArkhamDB). Per una carta sola usa «Carica immagine» nella sua anteprima.</p>
+    <button class="primary" style="width:100%" data-a="libBulk">Scegli i file…</button><div id="libMsg" class="small" style="margin-top:6px"></div>
+    <details style="margin-top:10px"><summary>Usare la libreria su un altro dispositivo</summary><p class="small">Copia questa chiave e incollala nello stesso menu sull'altro dispositivo. Non darla ai giocatori: con la chiave si possono anche modificare le immagini.</p>
+    <textarea id="libKeyOut" readonly style="width:100%;height:60px;font:12px monospace;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px">${LIBKEY}</textarea><button class="sm" data-a="libCopy">Copia chiave</button> <button class="sm ghost danger" data-a="libForget">Scollega da questo dispositivo</button></details>`
+  :`<button class="primary" style="width:100%" data-a="libCreate">Crea la mia libreria</button>
+    <label class="f">Hai già una libreria su un altro dispositivo? Incolla la chiave</label><div class="row"><input type="text" id="libKeyIn" class="grow" style="flex:1;width:auto"><button data-a="libUse">Usa</button></div>`}
+  <p id="libErr" class="small" style="color:#f0b3ab"></p><div class="navbtns"><button class="ghost" data-a="close" style="flex:1">Chiudi</button></div>`);
+}
+function codeFromFilename(n){const m=n.match(/(\d{5}[a-z]?)/i);return m?m[1].toLowerCase():null;}
 const DECKS={
   roland:[6,16,17,18,19,20,21,30,31,32,33,34,35,86,86,87,87,22,23,24,36,37,38,88,88,25,39,89,89,92,92,7],
   daisy:[8,30,31,32,33,34,35,58,59,60,61,62,63,86,86,87,87,36,37,38,64,65,66,88,88,39,67,90,90,92,92,9],
@@ -847,6 +896,7 @@ function ping(){if(CONN.chan)CONN.chan.send({type:'broadcast',event:'ping',paylo
 /* ---------- connessione realtime ---------- */
 function targetId(){return PL.on?(PL.pack&&PL.pack.game_id):(S.game&&S.game.online?S.game.online.id:null);}
 function ensureConn(){
+  refreshImgList();
   const id=targetId();
   if(CONN.id===id)return;
   if(CONN.chan){try{client().removeChannel(CONN.chan);}catch(e){}}
@@ -947,6 +997,7 @@ async function createTable(){
     const codes={};
     for(let i=0;i<g.invs.length;i++)codes['s'+i]=await rpc('ah_host_add_player',{p_token:r.token,p_slot:'s'+i,p_data:playerData(g,i)});
     g.online={id:r.game_id,token:r.token,codes};
+    if(LIBKEY){try{await rpc('ah_host_set_lib',{p_token:r.token,p_key:LIBKEY});g.online.lib=LIBKEY;}catch(e){}}
     log(g,'Tavolo online creato');save();render();openTable();
   }catch(e){const m=document.getElementById('tblErr');if(m)m.textContent='Non riesco a creare il tavolo: '+e.message;if(btn){btn.disabled=false;btn.textContent='Crea il tavolo online';}}
 }
@@ -1001,7 +1052,7 @@ function leaveTable(){
 function icons(c){return c.ic&&c.t!=='investigator'?Object.entries(c.ic).map(([k,n])=>`<span class="ico ico-${k}">${ICN[k]}${n>1?'×'+n:''}</span>`).join(''):'';}
 function cardLine(c){
   const bits=[TYPE_IT[c.t]||c.t,FAC_IT[c.f]];
-  if(c.c!=null)bits.push('Costo '+c.c);if(c.l)bits.push('Liv. '+c.l);if(c.s)bits.push(c.s);
+  if(c.c!=null)bits.push('Costo '+costTxt(c.c));if(c.l)bits.push('Liv. '+c.l);if(c.s)bits.push(c.s);
   if(c.t==='asset'&&(c.hp||c.san))bits.push(`♥${c.hp||'–'} ✦${c.san||'–'}`);
   if(c.t==='enemy')bits.push(`Sco ${c.ef} · Sal ${c.hp} · Agi ${c.ee} · Danni ${c.ed||0} Orrori ${c.eh||0}`);
   if(c.wk)bits.push(c.wk===2?'Debolezza base':'Debolezza');
@@ -1011,8 +1062,9 @@ function cardText(c){return (c.tx||'').replace(/\n/g,'<br>');}
 function cardBody(c){return `<div class="small muted">${esc(cardLine(c))}</div>${c.tr?`<div class="small"><i>${esc(c.tr)}</i></div>`:''}<div class="ctext">${cardText(c)}</div>${icons(c)?`<div style="margin-top:4px">${icons(c)}</div>`:''}`;}
 function cardName(c,plain){const nm=(c.u?'• ':'')+esc(c.n)+(c.sub?` <span class="muted small">— ${esc(c.sub)}</span>`:'');
   return plain?nm:`<span class="clink" data-a="cardview" data-v="${c.id}" title="Vedi la carta">${cardThumb(c)}<span>${nm}</span></span>`;}
-function cardThumb(c){return `<span class="cthumb f-${c.f}${c.wk?' wk':''}">${c.c!=null&&c.t!=='investigator'?c.c:''}</span>`;}
-function adbCode(id){return '01'+String(id).padStart(3,'0');}
+function cardThumb(c){return `<span class="cthumb f-${c.f}${c.wk?' wk':''}${IMGLIST.has(adbCode(c.id))?' hasimg':''}">${c.c!=null&&c.t!=='investigator'?costTxt(c.c):''}</span>`;}
+function costTxt(v){return v<0?'X':v;}
+function adbCode(id){return typeof id==='number'||/^\d{1,3}$/.test(String(id))?'01'+String(id).padStart(3,'0'):String(id);}
 function cardFrame(c){
   const lv=c.l?'<span class="cf-lvl">'+'●'.repeat(c.l)+'</span>':'';
   const ic=c.ic&&c.t!=='investigator'?Object.entries(c.ic).map(([k,n])=>Array(n).fill(`<span class="cf-icon ico-${k}">${ICN[k]}</span>`).join('')).join(''):'';
@@ -1022,7 +1074,7 @@ function cardFrame(c){
   else if(c.hp||c.san)bot.push(`<span style="color:var(--hp)">♥ ${c.hp||'–'}</span> <span style="color:var(--san)">✦ ${c.san||'–'}</span>`);
   if(c.s)bot.push('Slot: '+esc(c.s));
   return `<div class="cf f-${c.f}${c.wk?' wk':''}">
-   <div class="cf-top">${c.c!=null&&c.t!=='investigator'?`<span class="cf-cost">${c.c}</span>`:'<span class="cf-cost empty"></span>'}
+   <div class="cf-top">${c.c!=null&&c.t!=='investigator'?`<span class="cf-cost">${costTxt(c.c)}</span>`:'<span class="cf-cost empty"></span>'}
      <div class="cf-name">${(c.u?'• ':'')+esc(c.n)}${c.sub?`<div class="cf-sub">${esc(c.sub)}</div>`:''}</div>${lv}</div>
    <div class="cf-type">${esc(TYPE_IT[c.t]||c.t)} · ${esc(FAC_IT[c.f])}${c.wk?(c.wk===2?' · Debolezza base':' · Debolezza'):''}</div>
    ${ic?`<div class="cf-ics">${ic}</div>`:''}
@@ -1034,8 +1086,20 @@ function cardFrame(c){
 function openCard(id){const c=CARD[id];if(!c)return;
   let ov=document.getElementById('cv');
   if(!ov){ov=document.createElement('div');ov.id='cv';document.body.appendChild(ov);ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.remove('on');});}
-  ov.innerHTML=`<div class="cvbox">${cardFrame(c)}<div class="row" style="justify-content:space-between;margin-top:10px"><a href="https://arkhamdb.com/card/${adbCode(id)}" target="_blank" rel="noopener" class="small">Carta originale su ArkhamDB ↗</a><button class="sm" data-a="cvclose">Chiudi</button></div></div>`;
-  ov.classList.add('on');}
+  CV.id=id;CV.text=false;paintCard();ov.classList.add('on');
+  const code=adbCode(id);if(IMGLIST.has(code)&&!IMGS[code])fetchImgs([code]).then(paintCard);}
+const CV={id:null,text:false};
+function paintCard(){
+  const ov=document.getElementById('cv');if(!ov||CV.id==null)return;const c=CARD[CV.id],code=adbCode(CV.id);
+  const has=IMGLIST.has(code),img=IMGS[code];
+  const showImg=has&&!CV.text;
+  ov.innerHTML=`<div class="cvbox">${showImg?(img?`<img class="cvimg" src="${img}" alt="${esc(c.n)}">`:'<div class="cvload">Carico l\'immagine…</div>'):cardFrame(c)}
+  <div class="row" style="justify-content:space-between;margin-top:10px;gap:6px">
+   ${has?`<button class="sm" data-a="cvtoggle">${showImg?'Mostra testo':'Mostra immagine'}</button>`:''}
+   ${LIBKEY?`<button class="sm" data-a="cvupload">${has?'Sostituisci immagine':'Carica immagine'}</button>${has?'<button class="sm ghost danger" data-a="cvdel">Rimuovi</button>':''}`:''}
+   <button class="sm" data-a="cvclose" style="margin-left:auto">Chiudi</button></div>
+  <div class="small" style="margin-top:8px"><a href="https://arkhamdb.com/card/${code}" target="_blank" rel="noopener">Carta originale su ArkhamDB ↗</a></div></div>`;
+}
 
 /* ---------- render giocatore ---------- */
 function renderPlayer(){
@@ -1119,10 +1183,11 @@ function renderPCards(m){
   h+=`<details><summary>Consulta le carte</summary><input type="text" id="psearch" placeholder="Cerca per nome, tratto o testo" value="${esc(PL.q||'')}"><div id="presults">${searchResults(PL.q||'',false)}</div></details>`;
   return h;
 }
-function deckGroups(list){const m={};list.forEach(id=>m[id]=(m[id]||0)+1);return Object.entries(m).map(([id,n])=>[+id,n]).sort((a,b)=>a[0]-b[0]);}
+function toId(v){v=String(v);return /^\d{1,3}$/.test(v)?+v:v;}
+function deckGroups(list){const m={};list.forEach(id=>m[id]=(m[id]||0)+1);return Object.entries(m).map(([id,n])=>[toId(id),n]).sort((a,b)=>adbCode(a[0]).localeCompare(adbCode(b[0])));}
 function searchResults(q,pick){
   q=(q||'').toLowerCase().trim();
-  const list=CARDS.filter(c=>c.id>0&&c.t!=='investigator'&&(!q||(c.n+' '+(c.en||'')+' '+(c.tr||'')+' '+(c.tx||'')).toLowerCase().includes(q))).slice(0,q?40:15);
+  const list=CARDS.concat(ALLCARDS).filter(c=>c.id!==0&&c.t!=='investigator'&&(!q||(c.n+' '+(c.en||'')+' '+(c.tr||'')+' '+(c.tx||'')).toLowerCase().includes(q))).slice(0,q?40:15);
   return list.map(c=>`<div class="inv"><div class="row between"><b>${cardName(c)}</b>${pick?`<button class="sm" data-a="${pick}" data-v="${c.id}">Scegli</button>`:''}</div>${cardBody(c)}</div>`).join('')||'<p class="small muted">Nessuna carta trovata.</p>';
 }
 function renderDigital(m){
@@ -1131,11 +1196,11 @@ function renderDigital(m){
   let h=`<div class="card"><div class="row between"><h3>Mano (${d.hand.length})</h3><span class="small muted">Mazzo ${d.draw.length} · Scarti ${d.discard.length}</span></div>`;
   if(d.mull)h+=`<div class="note small">Mulligan: seleziona le carte da sostituire, poi conferma (una sola volta).</div>`;
   h+=d.hand.map((id,k)=>{const c=CARD[id];if(!c)return'';const sel=d.mull&&d.sel&&d.sel.includes(k);
-    return `<div class="inv ${sel?'selc':''}"><div class="row between"><b>${cardName(c)}</b><span class="small muted">${c.c!=null?'Costo '+c.c:''}</span></div>
+    return `<div class="inv ${sel?'selc':''}"><div class="row between"><b>${cardName(c)}</b><span class="small muted">${c.c!=null?'Costo '+costTxt(c.c):''}</span></div>
     <div class="small muted">${esc(TYPE_IT[c.t]||'')}${c.s?' · '+esc(c.s):''} ${icons(c)}</div>
     <details class="cdet"><summary>Testo</summary>${cardBody(c)}</details>
     <div class="row" style="margin-top:6px">${d.mull?`<button class="sm ${sel?'primary':''}" data-a="pmsel" data-v="${k}">${sel?'Da sostituire':'Sostituisci'}</button>`:
-      `${c.t==='asset'||c.t==='event'?`<button class="sm primary" data-a="pplay" data-v="${k}">Gioca${c.c?' ('+c.c+')':''}</button>`:''}${c.ic?`<button class="sm" data-a="pcommit" data-v="${k}">Investi</button>`:''}<button class="sm ghost" data-a="pdiscard" data-v="${k}">Scarta</button>`}</div></div>`}).join('');
+      `${c.t==='asset'||c.t==='event'?`<button class="sm primary" data-a="pplay" data-v="${k}">Gioca${c.c?' ('+costTxt(c.c)+')':''}</button>`:''}${c.ic?`<button class="sm" data-a="pcommit" data-v="${k}">Investi</button>`:''}<button class="sm ghost" data-a="pdiscard" data-v="${k}">Scarta</button>`}</div></div>`}).join('');
   h+=d.mull?`<button class="primary" style="width:100%;margin-top:8px" data-a="pmconfirm">Conferma la mano</button>`:
     `<div class="row" style="margin-top:8px"><button class="primary grow" data-a="pdraw">Pesca 1 carta</button><button class="ghost" data-a="preset">Rifai il mazzo</button></div>`;
   h+=`</div>`;
@@ -1179,17 +1244,17 @@ Object.assign(H,{
       ids.map(id=>{const c=CARD[id];return `<div class="inv"><div class="row between"><b>${cardName(c)}</b><button class="sm primary" data-a="pputPlay" data-v="${id}">Gioca (${c.c||0})</button></div><div class="small muted">${esc(cardLine(c))}</div></div>`}).join('')+
       `<details><summary>Altre carte</summary><input type="text" id="pickq" placeholder="Cerca"><div id="pickres">${searchResults('',false)}</div></details><div class="navbtns"><button class="ghost" data-a="close" style="flex:1">Chiudi</button></div>`);
     const q=document.getElementById('pickq');q.addEventListener('input',()=>{document.getElementById('pickres').innerHTML=searchResults(q.value,'pputPlay');});document.getElementById('pickres').innerHTML=searchResults('','pputPlay');},
-  pputPlay(e){const id=+e.dataset.v,c=CARD[id];const pay=document.getElementById('payCost');const doPay=pay?pay.checked:true;const m=me();
-    if(doPay&&(c.c||0)>m.res){toast('Risorse insufficienti: servono '+c.c,true);return;}
-    closeModal();pmut(m=>{if(doPay)m.res-=(c.c||0);m.inplay=(m.inplay||[]).concat([{u:uid(),id,uses:c.uses?c.uses[0]:null,d:0,h:0,ex:false}]);});},
+  pputPlay(e){const id=toId(e.dataset.v),c=CARD[id];const pay=document.getElementById('payCost');const doPay=pay?pay.checked:true;const m=me();
+    if(doPay&&Math.max(0,c.c||0)>m.res){toast('Risorse insufficienti: servono '+c.c,true);return;}
+    closeModal();pmut(m=>{if(doPay)m.res-=Math.max(0,c.c||0);m.inplay=(m.inplay||[]).concat([{u:uid(),id,uses:c.uses?c.uses[0]:null,d:0,h:0,ex:false}]);});},
   pexh(e){pmut(m=>{const x=m.inplay.find(y=>y.u===e.dataset.v);if(x)x.ex=!x.ex;});},
   puse(e){const [u,d]=e.dataset.v.split('|');pmut(m=>{const x=m.inplay.find(y=>y.u===u);if(x)x.uses=Math.max(0,(x.uses||0)+ +d);});},
   pad(e){const [u,k,d]=e.dataset.v.split('|');pmut(m=>{const x=m.inplay.find(y=>y.u===u);if(x)x[k]=Math.max(0,(x[k]||0)+ +d);});},
   punplay(e){pmut(m=>{const x=m.inplay.find(y=>y.u===e.dataset.v);m.inplay=m.inplay.filter(y=>y.u!==e.dataset.v);if(x&&m.deckMode==='digitale'&&m.deck)m.deck.discard.push(x.id);});},
-  pdeckDel(e){const id=+e.dataset.v;pmut(m=>{const i=m.deckList.indexOf(id);if(i>=0)m.deckList.splice(i,1);});},
+  pdeckDel(e){const id=toId(e.dataset.v);pmut(m=>{const i=m.deckList.indexOf(id);if(i>=0)m.deckList.splice(i,1);});},
   pdeckAdd(){openModal(`<h2 style="margin-bottom:8px">Aggiungi al mazzo</h2><input type="text" id="addq" placeholder="Cerca una carta"><div id="addres"></div><div class="navbtns"><button class="ghost" data-a="close" style="flex:1">Chiudi</button></div>`);
     const q=document.getElementById('addq'),r=document.getElementById('addres');r.innerHTML=searchResults('','pdeckPick');q.addEventListener('input',()=>{r.innerHTML=searchResults(q.value,'pdeckPick');});},
-  pdeckPick(e){const id=+e.dataset.v;pmut(m=>{m.deckList=m.deckList.concat([id]);});toast(CARD[id].n+' aggiunta al mazzo');},
+  pdeckPick(e){const id=toId(e.dataset.v);pmut(m=>{m.deckList=m.deckList.concat([id]);});toast(CARD[id].n+' aggiunta al mazzo');},
   pprep(){pmut(m=>{const all=shuffle(m.deckList.slice());const hand=[],aside=[];
     while(hand.length<5&&all.length){const id=all.shift();if(CARD[id]&&CARD[id].wk)aside.push(id);else hand.push(id);}
     m.deck={draw:all,hand,aside,discard:[],mull:true,sel:[]};});},
@@ -1203,8 +1268,8 @@ Object.assign(H,{
   pweak(e){const id=PL.weak;if(id==null)return;PL.weak=null;closeModal();const w=e.dataset.v;
     pmut(m=>{if(w==='threat')m.threat=(m.threat||[]).concat([{u:uid(),id,n:CARD[id].n}]);else if(w==='discard')m.deck.discard.push(id);else m.deck.hand.push(id);});},
   pplay(e){const k=+e.dataset.v;const m=me();const id=m.deck.hand[k],c=CARD[id];
-    if((c.c||0)>m.res){toast('Risorse insufficienti: servono '+c.c,true);return;}
-    pmut(m=>{m.deck.hand.splice(k,1);m.res-=(c.c||0);if(c.t==='asset')m.inplay=(m.inplay||[]).concat([{u:uid(),id,uses:c.uses?c.uses[0]:null,d:0,h:0,ex:false}]);else m.deck.discard.push(id);});
+    if(Math.max(0,c.c||0)>m.res){toast('Risorse insufficienti: servono '+c.c,true);return;}
+    pmut(m=>{m.deck.hand.splice(k,1);m.res-=Math.max(0,c.c||0);if(c.t==='asset')m.inplay=(m.inplay||[]).concat([{u:uid(),id,uses:c.uses?c.uses[0]:null,d:0,h:0,ex:false}]);else m.deck.discard.push(id);});
     if(c.t==='event')toast(c.n+': risolvi l\'effetto, poi va negli scarti');},
   pcommit(e){const k=+e.dataset.v;pmut(m=>{const id=m.deck.hand.splice(k,1)[0];m.deck.discard.push(id);});},
   pdiscard(e){const k=+e.dataset.v;const m=me();const c=CARD[m.deck.hand[k]];if(c&&c.wk){toast('Le debolezze non si possono scartare volontariamente dalla mano',true);return;}
@@ -1224,8 +1289,9 @@ function deckFromSlots(slots,invCode){
   const ids=[],skipped=[];
   Object.entries(slots||{}).forEach(([code,n])=>{n=+n||0;
     if(code==='01000'){for(let k=0;k<n;k++)ids.push(BASIC_WK[Math.floor(Math.random()*BASIC_WK.length)]);return;}
-    const id=/^01\d{3}$/.test(code)?+code.slice(2):null;
-    if(id&&CARD[id]&&CARD[id].t!=='investigator'){for(let k=0;k<n;k++)ids.push(id);}
+    const core=/^01\d{3}$/.test(code)&&+code.slice(2)<=103?+code.slice(2):null;
+    const id=core!=null?core:(CARDBASE[code]?code:null);
+    if(id!=null&&CARDBASE[id]&&CARDBASE[id].t!=='investigator'){for(let k=0;k<n;k++)ids.push(id);}
     else skipped.push(n+'× '+code);});
   return {ids,skipped,inv:invCode||null};
 }
@@ -1234,7 +1300,7 @@ function deckFromText(t){
   t.split(/\r?\n/).forEach(line=>{const m=line.match(/^\s*(\d+)\s*x?\s+(.+?)\s*(\(.*\))?\s*$/i);if(!m)return;
     const n=+m[1],nm=normName(m[2].replace(/\s+\[\d\]$/,'').replace(/•/g,''));
     const lv=(m[2].match(/\((\d)\)|\[(\d)\]/)||[]);const want=lv[1]||lv[2];
-    const cands=CARDS.filter(c=>c.id>0&&c.t!=='investigator'&&(normName(c.en)===nm||normName(c.n)===nm));
+    const cands=CARDS.concat(ALLCARDS).filter(c=>c.id!==0&&c.t!=='investigator'&&(normName(c.en)===nm||normName(c.n)===nm));
     const c=cands.find(x=>want!=null&&String(x.l||0)===want)||cands.find(x=>!x.l)||cands[0];
     if(c){for(let k=0;k<n;k++)ids.push(c.id);}else skipped.push(n+'× '+m[2]);});
   return {ids,skipped,inv:null};
@@ -1247,23 +1313,41 @@ async function fetchAdb(kind,id){
 async function runImport(){
   const t=document.getElementById('impDeck').value.trim();const msg=document.getElementById('impMsg2');if(!t)return;
   msg.style.color='var(--mut)';msg.textContent='Leggo il mazzo…';
+  await loadAllCards();
   try{
     let res;
     if(t.startsWith('{')){const j=JSON.parse(t);res=deckFromSlots(j.slots,j.investigator_code);res.name=j.name;}
     else{const m=t.match(/(decklist|deck)\/view\/(\d+)/)||t.match(/^(\d+)$/);
       if(m){const kind=m[2]?m[1]:'decklist',id=m[2]||m[1];const j=await fetchAdb(kind,id);res=deckFromSlots(j.slots,j.investigator_code);res.name=j.name;}
       else res=deckFromText(t);}
-    if(!res.ids.length)throw new Error('nessuna carta del Set Base riconosciuta');
-    IMP=res;const m=me();const myCode=INV_CARD[m.inv]?adbCode(INV_CARD[m.inv]):null;
+    if(!res.ids.length)throw new Error('nessuna carta riconosciuta');
+    IMP=res;const m=me();const myCode=INV_CARD[m.inv]?adbCode(INV_CARD[m.inv]):null;const invC=res.inv?(CARDBASE[res.inv]||CARDBASE[+res.inv.slice(2)]):null;
     const wrongInv=res.inv&&myCode&&res.inv!==myCode;
     msg.innerHTML=`<div class="note okbox">${res.name?'<b>'+esc(res.name)+'</b><br>':''}${res.ids.length} carte riconosciute.</div>`+
-      (wrongInv?`<div class="note warn">Questo mazzo è per ${esc((CARD[+res.inv.slice(2)]||{}).n||res.inv)}, non per ${esc(m.name)}.</div>`:'')+
-      (res.skipped.length?`<div class="note warn">Saltate (non del Set Base o non riconosciute): ${esc(res.skipped.join(', '))}</div>`:'')+
+      (wrongInv?`<div class="note warn">Questo mazzo è per ${esc((invC||{}).n||res.inv)}, non per ${esc(m.name)}.</div>`:'')+
+      (res.skipped.length?`<div class="note warn">Saltate (non riconosciute): ${esc(res.skipped.join(', '))}</div>`:'')+
       `<button class="primary" style="width:100%;margin-top:6px" data-a="pimportOk">Sostituisci il mio mazzo con questo</button>`;
   }catch(e){msg.style.color='#f0b3ab';msg.textContent='Non riesco a importare: '+e.message+'. Se il link non funziona, apri il mazzo su ArkhamDB, scegli Download → Text file e incolla qui il contenuto.';}
 }
 Object.assign(H,{
-  cardview(e){openCard(+e.dataset.v);},
+  cardview(e){openCard(toId(e.dataset.v));},
+  cvtoggle(){CV.text=!CV.text;paintCard();},
+  async cvupload(){const [f]=await pickFiles(false);if(!f)return;const code=adbCode(CV.id);toast('Carico l\'immagine…');
+    try{await uploadImg(code,f);CV.text=false;paintCard();render();toast('Immagine salvata');}catch(e){toast('Caricamento non riuscito: '+e.message,true);}},
+  async cvdel(){const code=adbCode(CV.id);try{await rpc('ah_lib_del',{p_key:LIBKEY,p_code:code});IMGLIST.delete(code);delete IMGS[code];paintCard();render();}catch(e){toast(e.message,true);}},
+  libMenu(){closeModal();refreshImgList(true).then(()=>{});openLibrary();},
+  async libCreate(){try{const r=await rpc('ah_lib_create',{});LIBKEY=r.key;try{localStorage.setItem('ahlcg-libkey',LIBKEY);}catch(e){}IMGLIST=new Set();IMG_AUTH=null;linkLibToTable();openLibrary();}
+    catch(e){document.getElementById('libErr').textContent='Non riesco a creare la libreria: '+e.message;}},
+  async libUse(){const k=document.getElementById('libKeyIn').value.trim();if(!k)return;
+    try{const l=await rpc('ah_lib_list',{p_auth:k});LIBKEY=k;try{localStorage.setItem('ahlcg-libkey',k);}catch(e){}IMGLIST=new Set(l||[]);IMG_AUTH=k;linkLibToTable();openLibrary();}
+    catch(e){document.getElementById('libErr').textContent=e.message;}},
+  libCopy(){const t=document.getElementById('libKeyOut');t.select();try{navigator.clipboard.writeText(t.value).then(()=>toast('Chiave copiata'),()=>{});}catch(_){}},
+  libForget(){LIBKEY=null;try{localStorage.removeItem('ahlcg-libkey');}catch(e){}IMG_AUTH=null;refreshImgList(true);closeModal();render();},
+  async libBulk(){const files=await pickFiles(true);if(!files.length)return;const msg=document.getElementById('libMsg');let ok=0;const bad=[];
+    for(const f of files){const code=codeFromFilename(f.name);if(!code){bad.push(f.name);continue;}
+      if(msg)msg.textContent=`Carico ${ok+bad.length+1}/${files.length}: ${f.name}…`;
+      try{await uploadImg(code,f);ok++;}catch(e){bad.push(f.name+' ('+e.message+')');}}
+    if(msg)msg.innerHTML=`<div class="note okbox">${ok} immagini salvate.</div>`+(bad.length?`<div class="note warn">Non caricate: ${esc(bad.join(', '))}</div>`:'');render();},
   cvclose(){const ov=document.getElementById('cv');if(ov)ov.classList.remove('on');},
   pimport(){IMP=null;openModal(`<h2 style="margin-bottom:8px">Importa da ArkhamDB</h2>
     <p class="small muted">Incolla il link del mazzo (es. <i>arkhamdb.com/decklist/view/12345</i> o <i>/deck/view/…</i>), il suo numero, oppure il testo esportato da ArkhamDB (Download → Text file).</p>
@@ -1286,7 +1370,7 @@ render=function(){
   if(!S.game&&S.tab==='round'){const app=document.getElementById('app');
     app.insertAdjacentHTML('afterbegin',`<div class="card"><h3>Sei un giocatore?</h3><p class="small muted">Inserisci il codice che ti ha dato la guida.</p><div class="row"><input type="text" id="joinCode" class="grow" style="flex:1;width:auto;text-transform:uppercase" maxlength="8" placeholder="Codice"><button class="primary" data-a="pjoin">Entra</button></div></div>`);}
   if(S.game&&S.tab==='team'&&S.game.online)decorateTeam();
-  ensureConn();paintConn();
+  ensureConn();paintConn();linkLibToTable();
 };
 function decorateTeam(){
   const cards=document.querySelectorAll('#app > .card');const g=S.game;const ord=order(g);
@@ -1309,13 +1393,16 @@ H.draw=function(){
   },reduce?150:850);
 };
 const _openMenu=openMenu;
-openMenu=function(){_openMenu();const g=G();if(!g)return;
+openMenu=function(){_openMenu();const g=G();
+  const op=document.querySelector('#sheet .opts');if(op)op.insertAdjacentHTML('beforeend','<button data-a="libMenu">Immagini delle carte…</button>');
+  if(!g)return;
   const opts=document.querySelector('#sheet .opts');if(opts)opts.insertAdjacentHTML('afterbegin',`<button class="${g.online?'':'primary'}" data-a="tableMenu">${g.online?'Tavolo online: codici dei giocatori':'Tavolo online…'}</button>`);};
 (function initOnline(){
   let code=null;try{code=new URLSearchParams(location.search).get('codice');}catch(e){}
   if(!code){try{code=localStorage.getItem('ahlcg-codice');}catch(e){}}
   const ver=document.getElementById('ver');if(ver&&!document.getElementById('conn'))ver.insertAdjacentHTML('afterend','<span id="conn" class="conn" style="display:none"></span>');
   if(code)joinTable(code);else render();
+  loadAllCards();
 })();
 H.menu=function(){if(PL.on)H.pmenu();else openMenu();};
 

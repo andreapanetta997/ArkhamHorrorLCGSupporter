@@ -220,3 +220,31 @@ grant execute on function public.ah_create_game(jsonb, int, int), public.ah_host
   public.ah_host_delta(text, text, text, int), public.ah_player_get(text), public.ah_player_patch(text, jsonb),
   public.ah_player_delta(text, text, int), public.ah_doom(text, text, int), public.ah_draw(text, text, text), public.ah_log(text, text, text)
   to anon, authenticated;
+
+-- ===== libreria immagini (migrazione "ah_libreria_immagini") =====
+-- Libreria privata della guida: le immagini caricate a mano restano nel database, mai nel repository.
+create table if not exists public.ah_libs (
+  id uuid primary key default gen_random_uuid(),
+  key_hash text not null unique,
+  created_at timestamptz not null default now()
+);
+create table if not exists public.ah_images (
+  lib_id uuid not null references public.ah_libs(id) on delete cascade,
+  code text not null,
+  img text not null,
+  updated_at timestamptz not null default now(),
+  primary key (lib_id, code)
+);
+alter table public.ah_games add column if not exists lib_id uuid references public.ah_libs(id) on delete set null;
+alter table public.ah_libs enable row level security;
+alter table public.ah_images enable row level security;
+revoke all on public.ah_libs, public.ah_images from anon, authenticated;
+-- ah__lib(p_key) -> lib id (errore se chiave sbagliata)
+-- ah__lib_read(p_auth) -> lib id da chiave libreria, codice guida o codice giocatore di un tavolo collegato (null se nessuna)
+-- ah_lib_create() -> {lib_id, key}
+-- ah_lib_put(p_key, p_code, p_img): solo data:image/*, max 700000 caratteri, codice [0-9a-z]{4,8}
+-- ah_lib_del(p_key, p_code)
+-- ah_lib_list(p_auth) -> [codici]
+-- ah_lib_get(p_auth, p_codes text[]) -> {codice: dataURL} (max 30 per chiamata)
+-- ah_host_set_lib(p_token, p_key): collega il tavolo alla libreria (p_key null scollega)
+-- Corpo completo delle funzioni: vedi la migrazione su Supabase; permessi: execute solo alle funzioni pubbliche.
