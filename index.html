@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Guida al Round — Arkham Horror LCG</title>
+<meta name="version" content="0.0.5">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -144,6 +145,7 @@ td.tkcell{white-space:nowrap}td.tkcell span{margin-left:8px;font-weight:600;vert
 
 <script>
 /* ===================== DATI ===================== */
+const APP_VERSION='0.0.5';
 const LS='ahlcg-guida-round-v1';
 const INV={
   roland:{n:'Roland Banks',c:'Guardiano',hp:9,san:5,sk:[3,3,4,2],ab:'Reazione: dopo che hai sconfitto un nemico, scopri 1 indizio nel tuo luogo (1 volta per round).',es:'+1 per ogni indizio nel tuo luogo.'},
@@ -675,7 +677,7 @@ const RULES=`<h2 style="margin-bottom:10px">Regole rapide</h2>
 <li>Galleria delle vittorie: nemici e sventure con Vittoria, più i <b>luoghi con Vittoria in gioco, aperti e senza indizi</b>.</li>
 <li>XP = punti Vittoria + bonus della risoluzione.</li>
 <li>Carta nuova: XP pari al livello (minimo 1). Miglioramento: differenza di livello.</li></ul></details>
-<p class="small muted">Fonte: Compendio delle Regole e Guida alla Campagna. Il testo delle carte prevale sempre.</p>`;
+<p class="small muted">Fonte: Compendio delle Regole e Guida alla Campagna. Il testo delle carte prevale sempre.</p><p class="small muted" style="text-align:center">Versione ${APP_VERSION}</p>`;
 
 /* ===================== MODALE ===================== */
 function openModal(html){document.getElementById('sheet').innerHTML=html;document.getElementById('modal').classList.add('on');}
@@ -719,7 +721,7 @@ function openMenu(){
   ${g?`<button data-a="exportGame">Esporta questa partita…</button><button data-a="endScen">Fine scenario…</button>`:''}
   <button data-a="newGame">${g?'Nuova partita (questa resta salvata)':'Nuova partita'}</button>
   <button class="ghost" data-a="close">Chiudi</button></div>
-  <p class="small muted" style="margin-top:12px">Le partite si salvano da sole su questo dispositivo. Per continuarle altrove usa «Esporta».</p>`);
+  <p class="small muted" style="margin-top:12px">Le partite si salvano da sole su questo dispositivo. Per continuarle altrove usa «Esporta».</p><p class="small muted" style="text-align:center;margin-top:8px">Versione ${APP_VERSION}</p>`);
 }
 function openEnd(){
   const g=G();
