@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Guida al Round — Arkham Horror LCG</title>
-<meta name="version" content="0.0.6">
+<meta name="version" content="0.0.7">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -20,7 +20,7 @@ h3{font-size:.98rem;color:var(--gold2);margin-bottom:6px}
 a{color:var(--gold2)}
 header{position:sticky;top:0;z-index:20;background:rgba(12,17,15,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) 12px 8px}
 .hrow{display:flex;align-items:center;gap:8px;max-width:760px;margin:0 auto}
-.hrow h1{font-size:1rem;flex:1;color:var(--gold)}
+.hrow h1{font-size:1rem;flex:1;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .ver{font-family:Inter,system-ui,sans-serif;font-size:.68rem;font-weight:600;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:1px 7px;margin-left:4px;vertical-align:middle;letter-spacing:0}
 main{max-width:760px;margin:0 auto;padding:12px 12px calc(96px + env(safe-area-inset-bottom))}
 nav{position:fixed;bottom:0;left:0;right:0;z-index:20;background:#0f1613;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom)}
@@ -127,12 +127,28 @@ td.tkcell{white-space:nowrap}td.tkcell span{margin-left:8px;font-weight:600;vert
 .fadein{animation:fadein .5s .35s both}@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .drawname{font-family:Cinzel,serif;color:var(--gold2);font-size:1.25rem;font-weight:700;margin-top:4px}
 @media (prefers-reduced-motion:reduce){.pop,.shaking .bagsvg,.fadein,.failfx .tk,.signfx .tk{animation:none}}
+
+.conn{width:9px;height:9px;border-radius:50%;margin-left:6px;vertical-align:middle;background:#777}
+.conn.on{background:var(--ok);box-shadow:0 0 6px var(--ok)}.conn.connecting{background:var(--res)}.conn.err{background:var(--doom)}
+#toast{position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translate(-50%,-20px);opacity:0;pointer-events:none;z-index:60;background:#2c2614;border:1px solid var(--gold);color:var(--gold2);padding:10px 16px;border-radius:12px;font-weight:600;max-width:92vw;text-align:center;transition:.25s}
+#toast.on{opacity:1;transform:translate(-50%,0)}#toast.bad{background:#2a1513;border-color:var(--doom);color:#f0b3ab}
+.code{font-family:ui-monospace,monospace;font-size:1.3rem;font-weight:800;letter-spacing:.12em;color:var(--gold2)}
+.qr{background:#e9e5d8;padding:6px;border-radius:8px;flex:none}.qr img,.qr canvas{display:block}
+.ctext{font-size:.88rem;margin-top:4px;line-height:1.45}
+.ico{display:inline-block;font-size:.7rem;font-weight:700;padding:1px 6px;border-radius:6px;margin-right:4px;background:#2a302c;border:1px solid var(--line)}
+.ico-w{color:#d9b46a}.ico-i{color:#8fb2e6}.ico-c{color:#e08a7c}.ico-a{color:#86d39a}.ico-x{color:#e9e5d8}
+.inv.exh{opacity:.65;transform:rotate(-1.2deg)}.inv.selc{border-color:var(--gold);background:#272214}
+.slots{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.slotc{font-size:.72rem;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--mut)}.slotc.over{border-color:var(--doom);color:#f0b3ab}
+details.cdet{border:0;padding:0;margin:6px 0 0;background:none}details.cdet summary{font-family:Inter,system-ui,sans-serif;font-size:.8rem;color:var(--mut)}
+.opt .small{display:block}
 /* modal */
 #modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center}
 #modal.on{display:flex}
 .sheet{background:var(--card);border:1px solid var(--line);border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-width:760px;width:100%;max-height:85vh;overflow:auto}
 @media(min-width:700px){#modal{align-items:center}.sheet{border-radius:16px}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <header><div class="hrow">
@@ -146,7 +162,7 @@ td.tkcell{white-space:nowrap}td.tkcell span{margin-left:8px;font-weight:600;vert
 
 <script>
 /* ===================== DATI ===================== */
-const APP_VERSION='0.0.6';
+const APP_VERSION='0.0.7';
 const LS='ahlcg-guida-round-v1';
 const INV={
   roland:{n:'Roland Banks',c:'Guardiano',hp:9,san:5,sk:[3,3,4,2],ab:'Reazione: dopo che hai sconfitto un nemico, scopri 1 indizio nel tuo luogo (1 volta per round).',es:'+1 per ogni indizio nel tuo luogo.'},
@@ -753,6 +769,445 @@ function setField(el,rerender){
 document.addEventListener('change',e=>{if(e.target.dataset.f)setField(e.target,true);});
 document.addEventListener('input',e=>{if(e.target.dataset.f&&e.target.tagName==='INPUT')setField(e.target,false);});
 render();
+</script>
+<script>
+const CARDS=[{"id":0,"n":"Debolezza Base Casuale","t":"treachery","f":"N","q":15,"wk":2,"tx":"Questa è una debolezza base casuale provvisoria.\nPuoi sostituirla con una debolezza specifica utilizzando la tab Special o cliccando sul pulsante di scelta casuale per rimpiazzarla con una debolezza casuale dalla tua collezione."},{"id":1,"n":"Roland Banks","t":"investigator","f":"G","sub":"L'Agente Federale","u":1,"hp":9,"san":5,"q":1,"ic":{"w":3,"i":3,"c":4,"a":2},"tr":"Agenzia. Detective.","tx":"[↺] Dopo che hai sconfitto un nemico: Scopri 1 indizio nel tuo luogo. (Limite di una volta per round.)\n<b>Effetto di</b> [Simbolo degli Antichi]: +1 per ogni indizio nel tuo luogo.","sk":[3,3,4,2],"bk":"<b>Dimensione del mazzo</b>: 30 carte.\n<b>Opzioni del Mazzo</b>: Carte Guardiano (Guardiano) di livello 0-5, carte Studioso (Studioso) di livello 0-2, carte neutrali di livello 0-5.\n<b>Requisiti del Mazzo</b> (non considerati nella dimensione del mazzo): 38 Special di Roland, Insabbiamento, 1 debolezza base casuale."},{"id":2,"n":"Daisy Walker","t":"investigator","f":"S","sub":"La Bibliotecaria","u":1,"hp":5,"san":9,"q":1,"ic":{"w":3,"i":5,"c":2,"a":2},"tr":"Miskatonic.","tx":"Durante il tuo turno, puoi effettuare 1 azione aggiuntiva relativa alla capacità [→] delle carte <i>Tomo</i>.\n<b>Effetto di</b> [Simbolo degli Antichi]: +0. Se hai successo, pesca 1 carta per ogni carta <i>Tomo</i> che controlli.","sk":[3,5,2,2],"bk":"<b>Dimensione del mazzo</b>: 30 carte.\n<b>Opzioni del Mazzo</b>: Carte Studioso (Studioso) di livello 0-5, carte Mistico (Mistico) di livello 0-2, carte neutrali di livello 0-5.\n<b>Requisiti del Mazzo</b> (non considerati nella dimensione del mazzo): Borsa di Daisy, Necronomicon (Traduzione di John Dee), 1 debolezza base casuale."},{"id":3,"n":"\"Skids\" O'Toole","t":"investigator","f":"C","sub":"L'Ex-Detenuto","u":1,"hp":8,"san":6,"q":1,"ic":{"w":2,"i":3,"c":3,"a":4},"tr":"Criminale.","tx":"[⚡] Durante il tuo turno, spendi 2 risorse: Durante questo turno, puoi effettuare 1 azione aggiuntiva. (Limite di una volta per turno.)\n<b>Effetto di</b> [Simbolo degli Antichi]: +2. Se hai successo, ottieni 2 risorse.","sk":[2,3,3,4],"bk":"<b>Dimensione del mazzo</b>: 30 carte.\n<b>Opzioni del Mazzo</b>: Carte Canaglia (Canaglia) di livello 0-5, carte Guardiano (Guardiano) di livello 0-2, carte neutrali di livello 0-5.\n<b>Requisiti del Mazzo</b> (non considerati nella dimensione del mazzo): Latitante, Debiti Ospedalieri, 1 debolezza base casuale."},{"id":4,"n":"Agnes Baker","t":"investigator","f":"M","sub":"La Cameriera","u":1,"hp":6,"san":8,"q":1,"ic":{"w":5,"i":2,"c":2,"a":3},"tr":"Stregone.","tx":"[↺] Dopo che 1 o più orrori sono stati collocati su di te: Infliggi 1 danno a un nemico nel tuo luogo. (Limite di una volta per fase.)\n<b>Effetto di</b> [Simbolo degli Antichi]: +1 per ogni orrore che possiedi.","sk":[5,2,2,3],"bk":"<b>Dimensione del Mazzo</b>: 30 carte.\n<b>Opzioni del Mazzo</b>: Carte Mistico (Mistico) di livello 0-5, carte Sopravvissuto (Sopravvissuto) di livello 0-2, carte neutrali di livello 0-5.\n<b>Requisiti del Mazzo</b> (non considerati nella dimensione del mazzo): Cimelio di Hyperborea, Ricordo Oscuro, 1 debolezza base casuale."},{"id":5,"n":"Wendy Adams","t":"investigator","f":"V","sub":"La Monella","u":1,"hp":7,"san":7,"q":1,"ic":{"w":4,"i":3,"c":1,"a":4},"tr":"Vagabondo.","tx":"[↺] Quando riveli 1 segnalino caos, scegli e scarta 1 carta dalla tua mano: Annulla quel segnalino e rimettilo nel sacchetto del caos, poi rivela 1 altro segnalino caos. (Limite di una volta per prova/capacità.)\n<b>Effetto di</b> [Simbolo degli Antichi]: +0. Se l'Amuleto di Wendy è in gioco, hai invece successo automaticamente.","sk":[4,3,1,4],"bk":"<b>Dimensione del Mazzo</b>: 30 carte.\n<b>Opzioni del Mazzo</b>: Carte Sopravvissuto (Sopravvissuto) di livello 0-5, carte Canaglia (Canaglia) di livello 0-2, carte neutrali di livello 0-5.\n<b>Requisiti del Mazzo</b> (non considerati nella dimensione del mazzo): Amuleto di Wendy, Sola e Abbandonata, 1 debolezza base casuale."},{"id":6,"n":"38 Special di Roland","t":"asset","f":"N","u":1,"c":3,"q":1,"s":"Mano","ic":{"c":1,"a":1,"x":1},"tr":"Oggetto. Arma. Arma da Fuoco.","tx":"Solo mazzo di Roland Banks.\nUtilizzo (4 munizioni).\n[→] Spendi 1 munizione: <b>Combatti.</b> Ricevi +1 [Sco] in questo attacco (se ci sono 1 o più indizi nel tuo luogo, ricevi invece +3 [Sco]). Infliggi +1 danno in questo attacco.","uses":[4,"munizioni"]},{"id":7,"n":"Insabbiamento","t":"treachery","f":"N","q":1,"wk":1,"tr":"Impresa.","tx":"<b>Rivelazione</b> - Metti in gioco l'Insabbiamento nella tua area di minaccia e colloca 3 indizi su di esso.\n[↺] Quando stai per scoprire 1 o più indizi nel tuo luogo: Scarta invece quell'ammontare di indizi dall'Insabbiamento.\n<b>Obbligo</b> - Quando la partita finisce, se ci sono indizi sull'Insabbiamento: Subisci 1 trauma mentale."},{"id":8,"n":"Borsa di Daisy","t":"asset","f":"N","u":1,"c":2,"q":1,"ic":{"w":1,"i":1,"x":1},"tr":"Oggetto.","tx":"Solo mazzo di Daisy Walker.\nPossiedi 2 slot mano aggiuntivi, a cui possono essere associati solo supporti <i>Tomo</i>."},{"id":9,"n":"Necronomicon","t":"asset","f":"N","sub":"Traduzione di John Dee","q":1,"s":"Mano","wk":1,"tr":"Oggetto. Tomo.","tx":"<b>Rivelazione</b> - Metti in gioco il Necronomicon nella tua area di minaccia e colloca 3 orrori su di esso. Finché ci sono orrori su di esso, il Necronomicon non può uscire dal gioco.\nConsidera i segnalini [Simbolo degli Antichi] che riveli come se fossero segnalini [Fallimento automatico].\n[→]: Sposta 1 orrore dal Necronomicon a Daisy Walker. Poi, se non ci sono orrori sul Necronomicon, scartalo."},{"id":10,"n":"Latitante","t":"event","f":"N","c":1,"q":1,"ic":{"i":1,"a":1,"x":2},"tr":"Tattica.","tx":"Solo mazzo di \"Skids\" O'Toole.\nVeloce. Solo dopo che il tuo turno è iniziato.\nFino alla fine del round, i nemici non <i>Elite</i> non possono attaccarti."},{"id":11,"n":"Debiti Ospedalieri","t":"treachery","f":"N","q":1,"wk":1,"tr":"Impresa.","tx":"<b>Rivelazione</b> - Metti in gioco i Debiti Ospedalieri nella tua area di minaccia.\n[⚡]: Sposta 1 risorsa dalla tua riserva delle risorse ai Debiti Ospedalieri. (Limite di due volte per round.)\n<b>Obbligo</b> - Quando la partita termina, se ci sono 5 o meno risorse sui Debiti Ospedalieri: Riduci di 2 i punti esperienza ottenuti in questo scenario."},{"id":12,"n":"Cimelio di Hyperborea","t":"asset","f":"N","sub":"Artefatto di un'Altra Vita","u":1,"c":3,"q":1,"s":"Accessorio","ic":{"w":1,"c":1,"x":1},"tr":"Oggetto. Reliquia.","tx":"Solo mazzo di Agnes Baker.\n[↺] Dopo che hai giocato 1 carta <i>Incantesimo</i>: Pesca 1 carta."},{"id":13,"n":"Ricordo Oscuro","t":"event","f":"N","c":2,"q":1,"wk":1,"tr":"Incantesimo.","tx":"Colloca 1 destino sulla trama attuale (questo effetto può far proseguire con la trama).\n<b>Obbligo</b> - Alla fine del tuo turno, se il Ricordo Oscuro si trova nella tua mano: Rivelalo e subisci 2 orrori."},{"id":14,"n":"Amuleto di Wendy","t":"asset","f":"N","u":1,"c":2,"q":1,"s":"Accessorio","ic":{"x":2},"tr":"Oggetto. Reliquia.","tx":"Solo mazzo di Wendy Adams.\nPuoi giocare l'evento in cima alla tua pila degli scarti come se fosse nella tua mano.\n<b>Obbligo</b> - Dopo che hai giocato un evento o scartato un evento dal gioco: Collocalo in fondo al tuo mazzo anziché nella tua pila degli scarti."},{"id":15,"n":"Sola e Abbandonata","t":"treachery","f":"N","q":1,"wk":1,"tr":"Follia.","tx":"<b>Rivelazione</b> - Subisci 2 orrori diretti e rimuovi dal gioco tutte le carte nella tua pila degli scarti."},{"id":16,"n":"Automatica Calibro 45","t":"asset","f":"G","c":4,"l":0,"q":1,"s":"Mano","ic":{"a":1},"tr":"Oggetto. Arma. Arma da Fuoco.","tx":"Utilizzo (4 munizioni).\n[→] Spendi 1 munizione: <b>Combatti.</b> Ricevi +1 [Sco] e infliggi +1 danno in questo attacco.","uses":[4,"munizioni"]},{"id":17,"n":"Addestramento Fisico","t":"asset","f":"G","c":2,"l":0,"q":1,"ic":{"w":1,"c":1},"tr":"Talento.","tx":"[⚡] Spendi 1 risorsa: Ricevi +1 [Vol] in questa prova di abilità.\n[⚡] Spendi 1 risorsa: Ricevi +1 [Sco] in questa prova di abilità."},{"id":18,"n":"Poliziotto di Ronda","t":"asset","f":"G","c":4,"l":0,"hp":2,"san":2,"q":1,"s":"Alleato","ic":{"c":1},"tr":"Alleato. Polizia.","tx":"Ricevi +1 [Sco].\n[⚡] Scarta il Poliziotto di Ronda: Infliggi 1 danno a un nemico nel tuo luogo."},{"id":19,"n":"Pronto Soccorso","t":"asset","f":"G","c":2,"l":0,"q":1,"ic":{"w":1},"tr":"Talento. Scienza.","tx":"Utilizzo (3 scorte). Se non ci sono scorte sul Pronto Soccorso, scartalo.\n[→] Spendi 1 scorta: Cura 1 danno o 1 orrore a un investigatore nel tuo luogo.","uses":[3,"scorte"]},{"id":20,"n":"Machete","t":"asset","f":"G","c":3,"l":0,"q":1,"s":"Mano","ic":{"c":1},"tr":"Oggetto. Arma. Mischia.","tx":"[→]: <b>Combatti.</b> Ricevi +1 [Sco] in questo attacco. Se attacchi l'unico nemico impegnato con te, infliggi +1 danno in questo attacco."},{"id":21,"n":"Cane da Guardia","t":"asset","f":"G","c":3,"l":0,"hp":3,"san":1,"q":1,"s":"Alleato","ic":{"c":1},"tr":"Alleato. Creatura.","tx":"[↺] Quando l'attacco di un nemico infligge danni al Cane da Guardia: Infliggi 1 danno al nemico attaccante."},{"id":22,"n":"Ecco la Prova!","t":"event","f":"G","c":1,"l":0,"q":1,"ic":{"i":2},"tr":"Intuizione.","tx":"Veloce. Solo dopo che hai sconfitto un nemico. Scopri un indizio nel tuo luogo."},{"id":23,"n":"Schivata","t":"event","f":"G","c":1,"l":0,"q":1,"ic":{"w":1,"a":1},"tr":"Tattica.","tx":"Veloce. Solo quando un nemico attacca un investigatore nel tuo luogo.\nAnnulla quell'attacco."},{"id":24,"n":"Carica di Dinamite","t":"event","f":"G","c":5,"l":0,"q":1,"ic":{"w":1},"tr":"Tattica.","tx":"Scegli il tuo luogo oppure un luogo collegato ad esso. Infliggi 3 danni a ogni nemico e a ogni investigatore nel luogo scelto."},{"id":25,"n":"Colpo Letale","t":"skill","f":"G","l":0,"q":1,"ic":{"c":1},"tr":"Allenamento.","tx":"Se questa prova di abilità ha successo attaccando, l'investigatore che la sta effettuando infligge +1 danno in questo attacco."},{"id":26,"n":"Munizioni Extra","t":"event","f":"G","c":2,"l":1,"q":1,"ic":{"i":1},"tr":"Scorta.","tx":"Colloca 3 munizioni su un supporto <i>Arma da Fuoco</i> controllato da un investigatore nel tuo luogo."},{"id":27,"n":"Distintivo della Polizia","t":"asset","f":"G","c":3,"l":2,"q":1,"s":"Accessorio","ic":{"w":1,"x":1},"tr":"Oggetto.","tx":"Ricevi +1 [Vol].\n[⚡] Finché un investigatore nel tuo luogo sta effettuando il suo turno, scarta il Distintivo della Polizia: Durante questo turno, quell'investigatore può effettuare 2 azioni aggiuntive."},{"id":28,"n":"Poliziotto di Ronda","t":"asset","f":"G","c":4,"l":2,"hp":3,"san":2,"q":1,"s":"Alleato","ic":{"c":1,"a":1},"tr":"Alleato. Polizia.","tx":"Ricevi +1 [Sco].\n[⚡] Esaurisci il Poliziotto di Ronda e infliggigli 1 danno: Infliggi 1 danno a un nemico nel tuo luogo."},{"id":29,"n":"Fucile a Pompa","t":"asset","f":"G","c":5,"l":4,"q":1,"s":"Mano x2","ic":{"c":2},"tr":"Oggetto. Arma. Arma da Fuoco.","tx":"Utilizzo (2 munizioni).\n[→] Spendi 1 munizione: <b>Combatti.</b> Ricevi +3 [Sco] in questo attacco. Invece dei danni standard, infliggi 1 danno in questo attacco per ogni punto di cui hai successo (minimo 1, massimo 5). Se fallisci e stai per danneggiare un altro investigatore, infliggi 1 danno in questo attacco per ogni punto di cui hai fallito (minimo 1, massimo 5).","uses":[2,"munizioni"]},{"id":30,"n":"Lente di Ingrandimento","t":"asset","f":"S","c":1,"l":0,"q":1,"s":"Mano","ic":{"i":1},"tr":"Oggetto. Strumento.","tx":"Veloce.\nFinché indaghi, ricevi +1 [Int]."},{"id":31,"n":"Vecchio Libro del Sapere","t":"asset","f":"S","c":3,"l":0,"q":1,"s":"Mano","ic":{"w":1},"tr":"Oggetto. Tomo.","tx":"[→] Esaurisci il Vecchio Libro del Sapere: Scegli un investigatore nel tuo luogo. Quell'investigatore cerca nelle 3 carte in cima al suo mazzo una carta e la pesca, poi rimescola il suo mazzo."},{"id":32,"n":"Bibliotecario Ricercatore","t":"asset","f":"S","c":2,"l":0,"hp":1,"san":1,"q":1,"s":"Alleato","ic":{"a":1},"tr":"Alleato. Miskatonic.","tx":"[↺] Dopo che il Bibliotecario Ricercatore è entrato in gioco: Cerca nel tuo mazzo un supporto <i>Tomo</i> e aggiungilo alla tua mano."},{"id":33,"n":"Dott. Milan Christopher","t":"asset","f":"S","sub":"Professore di Entomologia","u":1,"c":4,"l":0,"hp":1,"san":2,"q":1,"s":"Alleato","ic":{"i":1},"tr":"Alleato. Miskatonic.","tx":"Ricevi +1 [Int].\n[↺] Dopo che hai indagato con successo: Ottieni 1 risorsa."},{"id":34,"n":"Estrema Consapevolezza","t":"asset","f":"S","c":2,"l":0,"q":1,"ic":{"i":1,"a":1},"tr":"Talento.","tx":"[⚡] Spendi 1 risorsa: Ricevi +1 [Int] in questa prova di abilità.\n[⚡] Spendi 1 risorsa: Ricevi +1 [Agi] in questa prova di abilità."},{"id":35,"n":"Testi Medici","t":"asset","f":"S","c":2,"l":0,"q":1,"s":"Mano","ic":{"c":1},"tr":"Oggetto. Tomo.","tx":"[→] Scegli un investigatore nel tuo luogo ed effettua una prova di [Int] (2). Se hai successo, cura 1 danno a quell'investigatore. Se fallisci, infliggi 1 danno a quell'investigatore."},{"id":36,"n":"Mente sulla Materia","t":"event","f":"S","c":1,"l":0,"q":1,"ic":{"c":1,"a":1},"tr":"Intuizione.","tx":"Veloce. Solo durante il tuo turno.\nFino alla fine del round, puoi usare [Int] invece di [Sco] o [Agi]."},{"id":37,"n":"Seguire l'Istinto","t":"event","f":"S","c":2,"l":0,"q":1,"ic":{"i":2},"tr":"Intuizione.","tx":"Veloce. Solo durante il tuo turno.\nScopri 1 indizio nel tuo luogo."},{"id":38,"n":"Barricata","t":"event","f":"S","c":0,"l":0,"q":1,"ic":{"w":1,"i":1,"a":1},"tr":"Intuizione. Tattica.","tx":"Assegna questo evento al tuo luogo.\nI nemici non <i>Elite</i> non possono muoversi fino al luogo con questo evento.\n<b>Obbligo</b> - Quando un investigatore lascia il luogo con questo evento: Scarta la Barricata."},{"id":39,"n":"Deduzione","t":"skill","f":"S","l":0,"q":1,"ic":{"i":1},"tr":"Allenamento.","tx":"Se questa prova di abilità ha successo indagando in un luogo, l'investigatore che la sta effettuando scopre 1 indizio aggiuntivo in quel luogo."},{"id":40,"n":"Lente di Ingrandimento","t":"asset","f":"S","c":0,"l":1,"q":1,"s":"Mano","ic":{"i":1},"tr":"Oggetto. Strumento.","tx":"Veloce.\nFinché indaghi, ricevi +1 [Int].\n[⚡] Se non ci sono indizi nel tuo luogo: Rimetti la Lente di Ingrandimento nella tua mano."},{"id":41,"n":"Disco di Itzamna","t":"asset","f":"S","sub":"Amuleto Protettivo","u":1,"c":3,"l":2,"q":1,"s":"Accessorio","ic":{"w":1,"i":1,"c":1},"tr":"Oggetto. Reliquia.","tx":"[↺] Quando un nemico non <i>Elite</i> è generato nel tuo luogo, scarta Disco di Itzamna: Scarta quel nemico."},{"id":42,"n":"Enciclopedia","t":"asset","f":"S","c":2,"l":2,"q":1,"s":"Mano","ic":{"x":1},"tr":"Oggetto. Tomo.","tx":"[→] Esaurisci l'Enciclopedia: Scegli un investigatore nel tuo luogo. Fino alla fine della fase, quell'investigatore riceve +2 a un'abilità a tua scelta."},{"id":43,"n":"Ricerca Criptica","t":"event","f":"S","c":0,"l":4,"q":1,"tr":"Intuizione.","tx":"Veloce. Solo durante il tuo turno.\nScegli un investigatore nel tuo luogo. Quell'investigatore pesca 3 carte."},{"id":44,"n":"Serramanico","t":"asset","f":"C","c":1,"l":0,"q":1,"s":"Mano","ic":{"a":1},"tr":"Oggetto. Arma. Mischia. Illecito.","tx":"Veloce.\n[→]: <b>Combatti.</b> Se hai successo di 2 o più punti, infliggi +1 danno in questo attacco."},{"id":45,"n":"Furto con Scasso","t":"asset","f":"C","c":1,"l":0,"q":1,"ic":{"i":1},"tr":"Talento. Illecito.","tx":"[→] Esaurisci il Furto con Scasso: <b>Indaga.</b> Se hai successo, invece di scoprire indizi, ottieni 3 risorse."},{"id":46,"n":"Borseggiatore","t":"asset","f":"C","c":2,"l":0,"q":1,"ic":{"a":1},"tr":"Talento. Illecito.","tx":"[↺] Dopo che hai eluso un nemico, esaurisci il Borseggiatore: Pesca 1 carta."},{"id":47,"n":"Derringer Calibro 41","t":"asset","f":"C","c":3,"l":0,"q":1,"s":"Mano","ic":{"c":1},"tr":"Oggetto. Arma. Arma da Fuoco. Illecito.","tx":"Utilizzo (3 munizioni).\n[→] Spendi 1 munizione: <b>Combatti.</b> Ricevi +2 [Sco] in questo attacco. Se hai successo di 2 o più punti, infliggi +1 danno in questo attacco.","uses":[3,"munizioni"]},{"id":48,"n":"Leo De Luca","t":"asset","f":"C","sub":"Leone della Louisiana","u":1,"c":6,"l":0,"hp":2,"san":2,"q":1,"s":"Alleato","ic":{"i":1},"tr":"Alleato. Criminale.","tx":"Durante il tuo turno, puoi effettuare 1 azione aggiuntiva."},{"id":49,"n":"Osso Duro","t":"asset","f":"C","c":2,"l":0,"q":1,"ic":{"c":1,"a":1},"tr":"Talento.","tx":"[⚡] Spendi 1 risorsa: Ricevi +1 [Sco] in questa prova di abilità.\n[⚡] Spendi 1 risorsa: Ricevi +1 [Agi] in questa prova di abilità."},{"id":50,"n":"Evasione","t":"event","f":"C","c":2,"l":0,"q":1,"ic":{"i":1,"a":1},"tr":"Tattica.","tx":"Veloce. Solo durante il tuo turno.\nDisimpegnati da ogni nemico impegnato con te e muoviti fino a un luogo aperto senza alcun nemico."},{"id":51,"n":"Colpo alle Spalle","t":"event","f":"C","c":3,"l":0,"q":1,"ic":{"c":1,"a":1},"tr":"Tattica.","tx":"<b>Combatti.</b> Usa [Agi] invece di [Sco]. Infliggi +2 danni in questo attacco."},{"id":52,"n":"Attacco Furtivo","t":"event","f":"C","c":2,"l":0,"q":1,"ic":{"i":1,"c":1},"tr":"Tattica.","tx":"Infliggi 2 danni a un nemico esaurito nel tuo luogo."},{"id":53,"n":"Opportunista","t":"skill","f":"C","l":0,"q":1,"ic":{"x":1},"tr":"Innato.","tx":"Solo se stai effettuando la prova di abilità.\nSe hai successo di 3 o più punti, dopo che questa prova è stata risolta rimetti l'Opportunista nella tua mano invece di scartarla."},{"id":54,"n":"Leo De Luca","t":"asset","f":"C","sub":"Leone della Louisiana","u":1,"c":5,"l":1,"hp":2,"san":2,"q":1,"s":"Alleato","ic":{"i":1},"tr":"Alleato. Criminale.","tx":"Durante il tuo turno, puoi effettuare 1 azione aggiuntiva."},{"id":55,"n":"Topo d'Appartamento","t":"asset","f":"C","c":4,"l":1,"hp":2,"san":2,"q":1,"s":"Alleato","ic":{"w":1,"a":1},"tr":"Alleato. Criminale.","tx":"Ricevi +1 [Agi].\n[→] Esaurisci il Topo d'Appartamento: Disimpegnati da ogni nemico impegnato con te e muoviti fino a un luogo collegato (ignorando gli attacchi di opportunità)."},{"id":56,"n":"Azzardo Infallibile","t":"event","f":"C","c":2,"l":3,"q":1,"tr":"Sorte. Intuizione.","tx":"Veloce. Solo dopo che hai rivelato 1 segnalino caos con un modificatore negativo.\nConsidera il \"–\" di quel segnalino come se fosse un \"+\"."},{"id":57,"n":"Serata Fortunata","t":"event","f":"C","c":3,"l":4,"q":1,"ic":{"x":1},"tr":"Sorte.","tx":"Ottieni 10 risorse."},{"id":58,"n":"Sapere Proibito","t":"asset","f":"M","c":0,"l":0,"q":1,"ic":{"i":1},"tr":"Talento.","tx":"Utilizzo (4 segreti). Se non ci sono segreti sul Sapere Proibito, scartalo.\n[⚡] Esaurisci il Sapere Proibito e subisci 1 orrore: Sposta 1 segreto dal Sapere Proibito alla tua riserva delle risorse (trasformandolo in risorsa).","uses":[4,"segreti"]},{"id":59,"n":"Rosario Sacro","t":"asset","f":"M","c":2,"l":0,"san":2,"q":1,"s":"Accessorio","ic":{"w":1},"tr":"Oggetto. Amuleto.","tx":"Ricevi +1 [Vol]."},{"id":60,"n":"Avvizzimento","t":"asset","f":"M","c":3,"l":0,"q":1,"s":"Arcano","ic":{"c":1},"tr":"Incantesimo.","tx":"Utilizzo (4 cariche).\n[→] Spendi 1 carica: <b>Combatti.</b> Usa [Vol] invece di [Sco]. Infliggi +1 danno in questo attacco. Se riveli un simbolo [Teschio], [Cultista], [Tavoletta], [Antico] o [Fallimento automatico], subisci 1 orrore.","uses":[4,"cariche"]},{"id":61,"n":"Scrutare","t":"asset","f":"M","c":1,"l":0,"q":1,"s":"Arcano","ic":{"i":1},"tr":"Incantesimo.","tx":"Utilizzo (3 cariche).\n[→] Esaurisci lo Scrutare e spendi 1 carica: Guarda le 3 carte in cima al mazzo degli incontri o a un qualsiasi mazzo dell'investigatore e rimettile in cima a quel mazzo nell'ordine che preferisci.","uses":[3,"cariche"]},{"id":62,"n":"Studi Arcani","t":"asset","f":"M","c":2,"l":0,"q":1,"ic":{"w":1,"i":1},"tr":"Talento.","tx":"[⚡] Spendi 1 risorsa: Ricevi +1 [Vol] in questa prova di abilità.\n[⚡] Spendi 1 risorsa: Ricevi +1 [Int] in questa prova di abilità."},{"id":63,"n":"Discepolo Arcano","t":"asset","f":"M","c":1,"l":0,"hp":1,"san":2,"q":1,"s":"Alleato","ic":{"w":1},"tr":"Alleato. Stregone.","tx":"<b>Obbligo</b> - Dopo che il Discepolo Arcano è entrato in gioco: Colloca 1 destino su di esso.\n[⚡] Esaurisci il Discepolo Arcano: Cerca nelle 3 carte in cima al tuo mazzo una carta <i>Incantesimo</i> e pescala. Poi rimescola il tuo mazzo."},{"id":64,"n":"Attratto dalla Fiamma","t":"event","f":"M","c":0,"l":0,"q":1,"ic":{"w":1,"i":1},"tr":"Intuizione.","tx":"Pesca la carta in cima al mazzo degli incontri. Poi scopri 2 indizi nel tuo luogo."},{"id":65,"n":"Interdizione Protettiva","t":"event","f":"M","c":1,"l":0,"q":1,"ic":{"x":1},"tr":"Incantesimo. Spirito.","tx":"Veloce. Solo quando peschi 1 carta sventura non debolezza.\nAnnulla la capacità Rivelazione di quella carta. Poi subisci 1 orrore."},{"id":66,"n":"Luce Accecante","t":"event","f":"M","c":2,"l":0,"q":1,"ic":{"w":1,"a":1},"tr":"Incantesimo.","tx":"<b>Eludi.</b> Usa [Vol] invece di [Agi]. Se hai successo, infliggi 1 danno al nemico eluso. Se riveli un simbolo [Teschio], [Cultista], [Tavoletta], [Antico] o [Fallimento automatico], perdi 1 azione."},{"id":67,"n":"Senza Paura","t":"skill","f":"M","l":0,"q":1,"ic":{"w":1},"tr":"Innato.","tx":"Se questa prova di abilità ha successo, curati 1 orrore."},{"id":68,"n":"Mente Cancellata","t":"event","f":"M","c":1,"l":1,"q":1,"ic":{"w":1,"c":1},"tr":"Incantesimo.","tx":"Veloce. Solo dopo che una fase è iniziata.\nScegli un nemico non <i>Elite</i> nel tuo luogo. Fino alla fine della fase, considera il suo riquadro di testo stampato come se fosse vuoto (<i>Tratti</i> esclusi)."},{"id":69,"n":"Luce Accecante","t":"event","f":"M","c":1,"l":2,"q":1,"ic":{"w":1,"a":1},"tr":"Incantesimo.","tx":"<b>Eludi.</b> Usa [Vol] invece di [Agi]. Se hai successo, infliggi 2 danni al nemico eluso. Se riveli un simbolo [Teschio], [Cultista], [Tavoletta], [Antico] o [Fallimento automatico], subisci 1 orrore e perdi 1 azione."},{"id":70,"n":"Libro delle Ombre","t":"asset","f":"M","c":4,"l":3,"q":1,"s":"Mano","ic":{"w":1,"i":1},"tr":"Oggetto. Tomo.","tx":"Possiedi 1 slot arcano aggiuntivo.\n[→] Esaurisci il Libro delle Ombre: Colloca 1 carica su un supporto <i>Incantesimo</i> che controlli."},{"id":71,"n":"Statua Grottesca","t":"asset","f":"M","c":2,"l":4,"q":1,"s":"Mano","ic":{"x":1},"tr":"Oggetto. Reliquia.","tx":"Utilizzo (4 cariche). Se non ci sono cariche sulla Statua Grottesca, scartala.\n[↺] Quando stai per rivelare 1 segnalino caos, spendi 1 carica: Rivela 2 segnalini caos invece di 1. Scegli 1 di quei segnalini da risolvere e ignora l'altro.","uses":[4,"cariche"]},{"id":72,"n":"Giacca di Pelle","t":"asset","f":"V","c":0,"l":0,"hp":2,"q":1,"s":"Corpo","ic":{"c":1},"tr":"Oggetto. Armatura.","tx":""},{"id":73,"n":"Oggetto Riciclato","t":"asset","f":"V","c":1,"l":0,"q":1,"ic":{"i":1},"tr":"Talento.","tx":"[↺] Dopo che hai avuto successo in una prova di abilità di 2 o più punti indagando, esaurisci l'Oggetto Riciclato: Scegli 1 carta <i>Oggetto</i> dalla tua pila degli scarti e aggiungila alla tua mano."},{"id":74,"n":"Mazza da Baseball","t":"asset","f":"V","c":2,"l":0,"q":1,"s":"Mano x2","ic":{"c":1},"tr":"Oggetto. Arma. Mischia.","tx":"[→]: <b>Combatti.</b> Ricevi +2 [Sco] e infliggi +1 danno in questo attacco. Se riveli un simbolo [Teschio] o [Fallimento automatico], dopo che questa prova è stata risolta scarta la Mazza da Baseball."},{"id":75,"n":"Zampa di Coniglio","t":"asset","f":"V","c":1,"l":0,"q":1,"s":"Accessorio","ic":{"x":1},"tr":"Oggetto. Amuleto.","tx":"[↺] Dopo che hai fallito una prova di abilità, esaurisci la Zampa di Coniglio: Pesca 1 carta."},{"id":76,"n":"Gatto Randagio","t":"asset","f":"V","c":1,"l":0,"hp":1,"q":1,"s":"Alleato","ic":{"a":1},"tr":"Alleato. Creatura.","tx":"[⚡] Scarta il Gatto Randagio: Eludi automaticamente un nemico non <i>Elite</i> nel tuo luogo."},{"id":77,"n":"Ultima Possibilità","t":"asset","f":"V","c":2,"l":0,"q":1,"ic":{"w":1,"a":1},"tr":"Talento.","tx":"[⚡] Spendi 1 risorsa: Ricevi +1 [Vol] in questa prova di abilità.\n[⚡] Spendi 1 risorsa: Ricevi +1 [Agi] in questa prova di abilità."},{"id":78,"n":"Distrazione Astuta","t":"event","f":"V","c":5,"l":0,"q":1,"ic":{"w":1,"x":1},"tr":"Tattica.","tx":"<b>Eludi.</b> Eludi automaticamente tutti i nemici nel tuo luogo."},{"id":79,"n":"\"Guarda Cosa Ho Trovato!\"","t":"event","f":"V","c":2,"l":0,"q":1,"ic":{"i":2},"tr":"Sorte.","tx":"Veloce. Solo dopo che hai fallito una prova di abilità di 2 o meno punti indagando.\nScopri 2 indizi nel tuo luogo."},{"id":80,"n":"Che Fortuna!","t":"event","f":"V","c":1,"l":0,"q":1,"tr":"Sorte.","tx":"Veloce. Solo quando stai per fallire una prova di abilità.\nRicevi +2 al tuo valore di abilità in quella prova."},{"id":81,"n":"Istinto di Sopravvivenza","t":"skill","f":"V","l":0,"q":1,"ic":{"a":1},"tr":"Innato.","tx":"Se questa prova ha successo tentando di eludere, l'investigatore che la sta effettuando può disimpegnarsi immediatamente da ogni altro nemico impegnato con lui e muoversi fino a un luogo collegato."},{"id":82,"n":"Aquinnah","t":"asset","f":"V","sub":"Figlia Dimenticata","u":1,"c":5,"l":1,"hp":1,"san":4,"q":1,"s":"Alleato","ic":{"w":1},"tr":"Alleato.","tx":"[↺] Quando un nemico ti attacca, esaurisci Aquinnah e infliggile 1 orrore: Invece di subire i danni di quel nemico, infliggili a un altro nemico nel tuo luogo (subisci comunque gli orrori di quel nemico)."},{"id":83,"n":"C'è Mancato Poco!","t":"event","f":"V","c":2,"l":2,"q":1,"ic":{"c":1,"a":1},"tr":"Sorte.","tx":"Veloce. Solo dopo che un nemico non <i>Elite</i> e non debolezza è stato eluso nel tuo luogo.\nRimescola quel nemico nel mazzo degli incontri."},{"id":84,"n":"Che Fortuna!","t":"event","f":"V","c":1,"l":2,"q":1,"tr":"Sorte.","tx":"Veloce. Solo quando stai per fallire una prova di abilità.\nRicevi +2 al tuo valore di abilità in quella prova. Pesca 1 carta."},{"id":85,"n":"Spirito di Sopravvivenza","t":"event","f":"V","c":4,"l":3,"q":1,"ic":{"c":1,"x":1},"tr":"Spirito.","tx":"Veloce. Solo durante il tuo turno.\nFino alla fine del tuo turno, non rivelare segnalini caos per le prove di abilità che effettui."},{"id":86,"n":"Coltello","t":"asset","f":"N","c":1,"l":0,"q":4,"s":"Mano","ic":{"c":1},"tr":"Oggetto. Arma. Mischia.","tx":"[→]: <b>Combatti.</b> Ricevi +1 [Sco] in questo attacco.\n[→] Scarta il Coltello: <b>Combatti.</b> Ricevi +2 [Sco] e infliggi +1 danno in questo attacco."},{"id":87,"n":"Torcia Elettrica","t":"asset","f":"N","c":2,"l":0,"q":4,"s":"Mano","ic":{"i":1},"tr":"Oggetto. Strumento.","tx":"Utilizzo (3 scorte).\n[→] Spendi 1 scorta: <b>Indaga.</b> Riduci di 2 il valore di Oscurità del tuo luogo in questa indagine.","uses":[3,"scorte"]},{"id":88,"n":"Deposito di Emergenza","t":"event","f":"N","c":0,"l":0,"q":4,"tr":"Scorta.","tx":"Ottieni 3 risorse."},{"id":89,"n":"Fegato","t":"skill","f":"N","l":0,"q":2,"ic":{"w":2},"tr":"Innato.","tx":"Massimo 1 investimento per prova di abilità.\nSe questa prova ha successo, pesca 1 carta."},{"id":90,"n":"Percezione","t":"skill","f":"N","l":0,"q":2,"ic":{"i":2},"tr":"Allenamento.","tx":"Massimo 1 investimento per prova di abilità.\nSe questa prova ha successo, pesca 1 carta."},{"id":91,"n":"Forza Soverchiante","t":"skill","f":"N","l":0,"q":2,"ic":{"c":2},"tr":"Allenamento.","tx":"Massimo 1 investimento per prova di abilità.\nSe questa prova ha successo, pesca 1 carta."},{"id":92,"n":"Destrezza Manuale","t":"skill","f":"N","l":0,"q":2,"ic":{"a":2},"tr":"Innato.","tx":"Massimo 1 investimento per prova di abilità.\nSe questa prova ha successo, pesca 1 carta."},{"id":93,"n":"Coraggio Inaspettato","t":"skill","f":"N","l":0,"q":2,"ic":{"x":2},"tr":"Innato.","tx":"Massimo 1 investimento per prova di abilità."},{"id":94,"n":"Giubbotto Antiproiettile","t":"asset","f":"N","c":2,"l":3,"hp":4,"q":2,"s":"Corpo","ic":{"c":1,"x":1},"tr":"Oggetto. Armatura.","tx":""},{"id":95,"n":"Amuleto degli Antichi","t":"asset","f":"N","c":2,"l":3,"san":4,"q":2,"s":"Accessorio","ic":{"w":1,"x":1},"tr":"Oggetto. Reliquia.","tx":""},{"id":96,"n":"Amnesia","t":"treachery","f":"N","q":2,"wk":2,"tr":"Follia.","tx":"<b>Rivelazione</b> - Scegli e scarta tutte le carte dalla tua mano tranne 1."},{"id":97,"n":"Paranoia","t":"treachery","f":"N","q":2,"wk":2,"tr":"Follia.","tx":"<b>Rivelazione</b> - Scarta tutte le tue risorse."},{"id":98,"n":"Tormento","t":"treachery","f":"N","q":1,"wk":2,"tr":"Maledizione.","tx":"<b>Rivelazione</b> - Metti in gioco il Tormento nella tua area di minaccia.\nRicevi -1 alle tue abilità.\n[→][→]: Scarta il Tormento."},{"id":99,"n":"Psicosi","t":"treachery","f":"N","q":1,"wk":2,"tr":"Follia.","tx":"<b>Rivelazione</b> - Metti in gioco la Psicosi nella tua area di minaccia.\n<b>Obbligo</b> - Dopo che hai subito 1 o più orrori: Subisci 1 danno diretto.\n[→][→]: Scarta la Psicosi."},{"id":100,"n":"Ipocondria","t":"treachery","f":"N","q":1,"wk":2,"tr":"Follia.","tx":"<b>Rivelazione</b> - Metti in gioco l'Ipocondria nella tua area di minaccia.\n<b>Obbligo</b> - Dopo che hai subito 1 o più danni: Subisci 1 orrore diretto.\n[→][→]: Scarta l'Ipocondria."},{"id":101,"n":"Sicario della Mala","t":"enemy","f":"N","hp":3,"q":1,"ef":4,"ee":3,"ed":1,"wk":2,"tr":"Umanoide. Criminale.","tx":"<b>Preda</b> - Solo il portatore.\nCacciatore.\n[→] Spendi 4 risorse: <b>Negozia</b>. Scarta il Sicario della Mala."},{"id":102,"n":"Accolito del Crepuscolo d'Argento","t":"enemy","f":"N","hp":3,"q":1,"ef":2,"ee":3,"ed":1,"wk":2,"tr":"Umanoide. Cultista. Crepuscolo d'Argento.","tx":"<b>Preda</b> - Solo il portatore.\nCacciatore.\n<b>Obbligo</b> - Dopo che l'Accolito del Crepuscolo d'Argento ha attaccato: Colloca 1 destino sulla trama attuale."},{"id":103,"n":"Detective Ostinato","t":"enemy","f":"N","hp":2,"q":1,"ef":3,"ee":2,"ed":1,"wk":2,"tr":"Umanoide. Detective.","tx":"<b>Preda</b> - Solo il portatore.\nCacciatore.\nFinché il Detective Ostinato si trova nel tuo luogo, considera il riquadro di testo stampato del tuo investigatore come se fosse vuoto (<i>Tratti</i> esclusi)."}];
+/* ===================== TAVOLO ONLINE (Supabase) ===================== */
+const SB_URL='https://oxpccbmfnbxukgbrdodo.supabase.co';
+const SB_KEY='sb_publishable_hPBjowNY4gUOv5cMsoxADg_oB-5wX8s';
+const CARD={};CARDS.forEach(c=>CARD[c.id]=c);
+const DECKS={
+  roland:[6,16,17,18,19,20,21,30,31,32,33,34,35,86,86,87,87,22,23,24,36,37,38,88,88,25,39,89,89,92,92,7],
+  daisy:[8,30,31,32,33,34,35,58,59,60,61,62,63,86,86,87,87,36,37,38,64,65,66,88,88,39,67,90,90,92,92,9],
+  skids:[16,17,18,19,20,21,44,45,46,47,48,49,86,86,87,87,10,22,23,24,50,51,52,88,88,25,53,89,89,91,91,11],
+  agnes:[12,58,59,60,61,62,63,72,73,74,75,76,77,86,86,87,87,64,65,66,78,79,80,88,88,67,81,90,90,93,93,13],
+  wendy:[14,44,45,46,47,48,49,72,73,74,75,76,77,86,86,87,87,50,51,52,78,79,80,88,88,53,81,91,91,93,93,15],
+  altro:[]
+};
+const INV_CARD={roland:1,daisy:2,skids:3,agnes:4,wendy:5};
+const BASIC_WK=[96,96,97,97,98,99,100,101,102,103];
+const CNT=['res','clues','dmg','hor'];
+const ABS=['used','maxA','tome','turnDone','skidsUsed','out'];
+const PABS=ABS.concat(['inplay','threat','deck','deckList','deckMode']);
+const TYPE_IT={investigator:'Investigatore',asset:'Supporto',event:'Evento',skill:'Abilità',treachery:'Sventura',enemy:'Nemico'};
+const FAC_IT={G:'Guardiano',S:'Studioso',C:'Canaglia',M:'Mistico',V:'Sopravvissuto',N:'Neutrale'};
+const ICN={w:'Vol',i:'Int',c:'Sco',a:'Agi',x:'Jolly'};
+
+let sb=null,CONN={id:null,chan:null,status:'off'},REMOTE={},LAST_DRAW_N=null,OWN_DRAW=false,POLL=null;
+const PL={on:false,code:null,slot:null,pack:null,err:'',weak:null,tab:'pscheda'};
+const clone=o=>JSON.parse(JSON.stringify(o));
+const uid=()=>Math.random().toString(36).slice(2,9);
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function client(){
+  if(sb)return sb;
+  if(!window.supabase||!window.supabase.createClient)throw new Error('libreria di Supabase non caricata: controlla la connessione');
+  sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+  return sb;
+}
+async function rpc(fn,args){const {data,error}=await client().rpc(fn,args);if(error)throw new Error(error.message);return data;}
+
+/* ---------- coda di scrittura ---------- */
+const Q=[];let qBusy=false;
+function enqueue(ops){if(!ops.length)return;Q.push(...ops);runQ();}
+async function runQ(){
+  if(qBusy)return;qBusy=true;
+  while(Q.length){const [fn,args]=Q.shift();try{await rpc(fn,args);}catch(e){toast('Sincronizzazione non riuscita: '+e.message,true);}}
+  qBusy=false;ping();refetch();
+}
+function ping(){if(CONN.chan)CONN.chan.send({type:'broadcast',event:'ping',payload:{}}).catch(()=>{});}
+
+/* ---------- connessione realtime ---------- */
+function targetId(){return PL.on?(PL.pack&&PL.pack.game_id):(S.game&&S.game.online?S.game.online.id:null);}
+function ensureConn(){
+  const id=targetId();
+  if(CONN.id===id)return;
+  if(CONN.chan){try{client().removeChannel(CONN.chan);}catch(e){}}
+  CONN={id,chan:null,status:id?'connecting':'off'};LAST_DRAW_N=null;REMOTE={};
+  clearInterval(POLL);POLL=null;
+  if(!id)return;
+  try{
+    const ch=client().channel('ah-'+id,{config:{broadcast:{self:false}}});
+    ch.on('broadcast',{event:'ping'},()=>refetchSoon());
+    ch.subscribe(st=>{CONN.status=st==='SUBSCRIBED'?'on':(st==='CHANNEL_ERROR'||st==='TIMED_OUT'||st==='CLOSED')?'err':'connecting';paintConn();});
+    CONN.chan=ch;
+  }catch(e){CONN.status='err';}
+  POLL=setInterval(()=>refetch(),20000);
+  refetch();
+}
+let rfT=null;function refetchSoon(){clearTimeout(rfT);rfT=setTimeout(refetch,150);}
+async function refetch(){
+  if(qBusy||Q.length)return;
+  try{
+    if(PL.on){
+      if(!PL.code)return;
+      const pack=await rpc('ah_player_get',{p_code:PL.code});
+      if(qBusy||Q.length)return;
+      PL.pack=pack;PL.slot=pack.slot;PL.err='';handleDraw(pack.draw);
+      if(CONN.id!==pack.game_id)ensureConn();
+      render();
+    }else{
+      const g=S.game;if(!g||!g.online)return;
+      const pack=await rpc('ah_host_get',{p_token:g.online.token});
+      if(qBusy||Q.length||S.game!==g)return;
+      applyHost(g,pack);handleDraw(pack.draw);save();render();
+    }
+    if(CONN.status==='err')CONN.status='on';
+  }catch(e){
+    if(PL.on){PL.err=e.message;render();}
+    else toast('Tavolo online non raggiungibile: '+e.message,true);
+  }
+}
+function applyHost(g,pack){
+  const adj=(snapFn)=>{UNDO=UNDO.map(s=>{const o=JSON.parse(s);snapFn(o);return JSON.stringify(o);});};
+  const dd=pack.doom-g.doom,od=pack.odoom-g.odoom;
+  const changes=[];
+  Object.entries(pack.players||{}).forEach(([slot,p])=>{
+    const i=+slot.slice(1),v=g.invs[i];if(!v)return;REMOTE[slot]=p.data;
+    CNT.forEach(f=>{const d=(p.data[f]||0)-(v[f]||0);if(d)changes.push([i,f,d]);});
+    ABS.forEach(f=>{if(p.data[f]!==undefined&&JSON.stringify(p.data[f])!==JSON.stringify(v[f]))changes.push([i,f,null,p.data[f]]);});
+  });
+  const apply=o=>{o.doom=Math.max(0,o.doom+dd);o.odoom=Math.max(0,o.odoom+od);
+    changes.forEach(([i,f,d,val])=>{if(!o.invs[i])return;if(d!==null)o.invs[i][f]=Math.max(0,(o.invs[i][f]||0)+d);else o.invs[i][f]=val;});};
+  if(dd||od||changes.length){apply(g);adj(apply);}
+}
+function handleDraw(d){
+  if(!d){LAST_DRAW_N=0;return;}
+  if(LAST_DRAW_N===null){LAST_DRAW_N=d.n;return;}
+  if(d.n===LAST_DRAW_N)return;
+  LAST_DRAW_N=d.n;
+  if(OWN_DRAW){OWN_DRAW=false;return;}
+  S.draw=d.t;const onBag=PL.on?PL.tab==='bag':S.tab==='bag';S.justDrew=onBag;
+  toast(`${d.who||'Qualcuno'} ha pescato: ${TK[d.t]||d.t}`);
+}
+
+/* ---------- toast ---------- */
+function toast(msg,bad){
+  let el=document.getElementById('toast');
+  if(!el){el=document.createElement('div');el.id='toast';document.body.appendChild(el);}
+  el.textContent=msg;el.className='on'+(bad?' bad':'');clearTimeout(el._t);el._t=setTimeout(()=>el.className='',bad?5000:3200);
+}
+function paintConn(){
+  const el=document.getElementById('conn');if(!el)return;
+  const st=CONN.id?CONN.status:'off';
+  el.className='conn '+st;el.title={on:'Tavolo online collegato',connecting:'Collegamento…',err:'Tavolo online non raggiungibile',off:''}[st];
+  el.style.display=st==='off'?'none':'inline-block';
+}
+
+/* ---------- lato guida ---------- */
+function pubState(g){return {scen:g.scen,diff:g.diff,lead:g.lead,round:g.round,phase:g.phase,step:g.step,agenda:g.agenda,act:g.act,customD:g.customD,mDoom:g.mDoom,resGiven:g.resGiven,name:g.name,log:g.log.slice(0,15),cond:g.cond};}
+function syncHost(a,b){
+  if(!a||!b||!b.online||a.id!==b.id)return;
+  const tok=b.online.token,ops=[];
+  if(b.doom!==a.doom)ops.push(['ah_doom',{p_auth:tok,p_field:'doom',p_delta:b.doom-a.doom}]);
+  if(b.odoom!==a.odoom)ops.push(['ah_doom',{p_auth:tok,p_field:'odoom',p_delta:b.odoom-a.odoom}]);
+  b.invs.forEach((vb,i)=>{const va=a.invs[i];if(!va)return;const slot='s'+i;
+    CNT.forEach(f=>{if(vb[f]!==va[f])ops.push(['ah_host_delta',{p_token:tok,p_slot:slot,p_field:f,p_delta:vb[f]-va[f]}]);});
+    const patch={};ABS.forEach(f=>{if(JSON.stringify(vb[f])!==JSON.stringify(va[f]))patch[f]=vb[f];});
+    if(Object.keys(patch).length)ops.push(['ah_host_patch_player',{p_token:tok,p_slot:slot,p_patch:patch}]);});
+  if(JSON.stringify(pubState(a))!==JSON.stringify(pubState(b)))ops.push(['ah_host_set_state',{p_token:tok,p_state:pubState(b)}]);
+  enqueue(ops);
+}
+function defaultDeck(inv){const d=(DECKS[inv]||[]).slice();if(d.length)d.push(BASIC_WK[Math.floor(Math.random()*BASIC_WK.length)]);return d;}
+function playerData(g,i){const v=g.invs[i];
+  return {inv:v.id,name:v.name,player:v.player,hp:v.hp,san:v.san,res:v.res,clues:v.clues,dmg:v.dmg,hor:v.hor,
+    used:v.used,maxA:v.maxA,tome:v.tome,turnDone:v.turnDone,skidsUsed:v.skidsUsed,out:v.out,
+    deckMode:'fisico',deckList:v.deckList||defaultDeck(v.id),inplay:[],threat:[],deck:null};}
+async function createTable(){
+  const g=S.game;const btn=document.getElementById('mkTable');if(btn){btn.disabled=true;btn.textContent='Creo il tavolo…';}
+  try{
+    const r=await rpc('ah_create_game',{p_state:pubState(g),p_doom:g.doom,p_odoom:g.odoom});
+    const codes={};
+    for(let i=0;i<g.invs.length;i++)codes['s'+i]=await rpc('ah_host_add_player',{p_token:r.token,p_slot:'s'+i,p_data:playerData(g,i)});
+    g.online={id:r.game_id,token:r.token,codes};
+    log(g,'Tavolo online creato');save();render();openTable();
+  }catch(e){const m=document.getElementById('tblErr');if(m)m.textContent='Non riesco a creare il tavolo: '+e.message;if(btn){btn.disabled=false;btn.textContent='Crea il tavolo online';}}
+}
+function joinLink(code){return location.origin+location.pathname+'?codice='+code;}
+function openTable(){
+  const g=S.game;
+  if(!g.online){
+    openModal(`<h2 style="margin-bottom:8px">Tavolo online</h2>
+    <p class="small">Ogni giocatore apre l'app sul proprio telefono con un codice e gestisce da lì la sua scheda: risorse, indizi, danni, orrori, azioni, carte in gioco, area di minaccia e, se vuole, il mazzo digitale. Possono anche aggiungere destino e pescare dal sacchetto del caos condiviso.</p>
+    <p class="small muted">Tu vedi e modifichi tutto da qui; i cambiamenti arrivano a tutti in tempo reale. Serve la connessione a Internet e l'app aperta dal sito su GitHub Pages.</p>
+    <p id="tblErr" class="small" style="color:#f0b3ab"></p>
+    <div class="navbtns"><button class="ghost" data-a="close">Annulla</button><button class="primary" id="mkTable" data-a="mkTable">Crea il tavolo online</button></div>`);
+    return;
+  }
+  openModal(`<h2 style="margin-bottom:6px">Tavolo online</h2><p class="small muted">Ogni giocatore inquadra il suo QR oppure apre l'app e inserisce il codice.</p>`+
+    g.invs.map((v,i)=>{const c=g.online.codes['s'+i];return `<div class="inv"><div class="row between"><b>${invName(v)}</b><span class="code">${c}</span></div>
+      <div class="row" style="margin-top:8px;align-items:flex-start"><div class="qr" id="qr${i}"></div><div class="grow small"><div class="muted" style="word-break:break-all">${esc(joinLink(c))}</div>
+      <button class="sm" style="margin-top:6px" data-a="copyLink" data-v="${c}">Copia link</button></div></div></div>`}).join('')+
+    `<div class="navbtns"><button class="ghost" data-a="close" style="flex:1">Chiudi</button><button class="danger" data-a="unlink">Scollega</button></div>`);
+  g.invs.forEach((v,i)=>{const el=document.getElementById('qr'+i);if(el&&window.QRCode){try{new QRCode(el,{text:joinLink(g.online.codes['s'+i]),width:112,height:112,colorDark:'#0c110f',colorLight:'#e9e5d8'});}catch(e){}}});
+}
+
+/* ---------- lato giocatore ---------- */
+function me(){return PL.pack&&PL.pack.players[PL.slot]?PL.pack.players[PL.slot].data:null;}
+function pseudo(){
+  const p=PL.pack;if(!p)return null;
+  const slots=Object.keys(p.players).sort((a,b)=>+a.slice(1)-+b.slice(1));
+  return Object.assign({log:[],checks:{},drawn:{},atk:{}},p.state,{doom:p.doom,odoom:p.odoom,invs:slots.map(s=>Object.assign({slot:s},p.players[s].data))});
+}
+function pmut(fn){
+  const m=me();if(!m)return;const before=clone(m);fn(m);render();
+  const ops=[];
+  CNT.forEach(f=>{const d=(m[f]||0)-(before[f]||0);if(d)ops.push(['ah_player_delta',{p_code:PL.code,p_field:f,p_delta:d}]);});
+  const patch={};PABS.forEach(f=>{if(JSON.stringify(m[f])!==JSON.stringify(before[f]))patch[f]=m[f]===undefined?null:m[f];});
+  if(Object.keys(patch).length)ops.push(['ah_player_patch',{p_code:PL.code,p_patch:patch}]);
+  enqueue(ops);
+}
+function pdoom(field,delta){const p=PL.pack;p[field]=Math.max(0,p[field]+delta);render();enqueue([['ah_doom',{p_auth:PL.code,p_field:field,p_delta:delta}]]);}
+async function joinTable(code){
+  code=(code||'').trim().toUpperCase();if(!code)return;
+  PL.on=true;PL.code=code;PL.err='';PL.pack=null;PL.tab='pscheda';
+  try{localStorage.setItem('ahlcg-codice',code);}catch(e){}
+  render();await refetch();ensureConn();
+}
+function leaveTable(){
+  PL.on=false;PL.code=null;PL.pack=null;try{localStorage.removeItem('ahlcg-codice');}catch(e){}
+  if(location.search){try{history.replaceState(null,'',location.pathname);}catch(e){}}
+  ensureConn();closeModal();render();
+}
+
+/* ---------- carte ---------- */
+function icons(c){return c.ic&&c.t!=='investigator'?Object.entries(c.ic).map(([k,n])=>`<span class="ico ico-${k}">${ICN[k]}${n>1?'×'+n:''}</span>`).join(''):'';}
+function cardLine(c){
+  const bits=[TYPE_IT[c.t]||c.t,FAC_IT[c.f]];
+  if(c.c!=null)bits.push('Costo '+c.c);if(c.l)bits.push('Liv. '+c.l);if(c.s)bits.push(c.s);
+  if(c.t==='asset'&&(c.hp||c.san))bits.push(`♥${c.hp||'–'} ✦${c.san||'–'}`);
+  if(c.t==='enemy')bits.push(`Sco ${c.ef} · Sal ${c.hp} · Agi ${c.ee} · Danni ${c.ed||0} Orrori ${c.eh||0}`);
+  if(c.wk)bits.push(c.wk===2?'Debolezza base':'Debolezza');
+  return bits.filter(Boolean).join(' · ');
+}
+function cardText(c){return (c.tx||'').replace(/\n/g,'<br>');}
+function cardBody(c){return `<div class="small muted">${esc(cardLine(c))}</div>${c.tr?`<div class="small"><i>${esc(c.tr)}</i></div>`:''}<div class="ctext">${cardText(c)}</div>${icons(c)?`<div style="margin-top:4px">${icons(c)}</div>`:''}`;}
+function cardName(c){return (c.u?'• ':'')+esc(c.n)+(c.sub?` <span class="muted small">— ${esc(c.sub)}</span>`:'');}
+
+/* ---------- render giocatore ---------- */
+function renderPlayer(){
+  const app=document.getElementById('app');
+  document.getElementById('undoBtn').style.visibility='hidden';
+  const tabs=[['pscheda','Scheda','team'],['pcarte','Carte','rules'],['bag','Caos','bag'],['rules','Regole','rules']];
+  document.getElementById('tabs').innerHTML=tabs.map(([k,l,ic])=>`<button class="${PL.tab===k?'on':''}" data-a="ptab" data-v="${k}">${k==='pcarte'?CARDS_ICON:ICONS[ic]}${l}</button>`).join('');
+  paintConn();
+  const m=me();
+  if(!m){app.innerHTML=`<div class="card"><h2>Tavolo online</h2><p>${PL.err?`<span style="color:#f0b3ab">${esc(PL.err)}</span>`:'Collegamento al tavolo…'}</p>
+    <div class="navbtns"><button data-a="pleave">Esci</button><button class="primary" data-a="prefresh">Riprova</button></div></div>`;return;}
+  if(PL.tab==='bag'){const keep=S.game;S.game=pseudo();app.innerHTML=renderBag();S.game=keep;return;}
+  if(PL.tab==='rules'){app.innerHTML=RULES;return;}
+  app.innerHTML=PL.tab==='pcarte'?renderPCards(m):renderPSheet(m);
+}
+function renderPStatus(){
+  const g=pseudo(),t=thr(g),T=totDoom(g),a=agenda(g),c=act(g),req=actReq(g),gc=groupClues(g);
+  let stepT='';try{if(g.phase>=-1){const st=steps(g);stepT=(st[g.step]||{}).t||'';}}catch(e){}
+  const ph=g.phase===-1?'Preparazione':'Round '+g.round+' · Fase '+(g.phase===1?'degli ':'dei ')+PH[g.phase];
+  return `<div class="card"><div class="row between"><b>${esc(ph.replace('Fase dei Gestione','Fase di Gestione'))}</b><span class="small muted">${esc(sc(g).n)}</span></div>
+  ${stepT?`<div class="small muted">Passo: ${esc(stepT)}</div>`:''}
+  ${a?`<div class="meter" style="margin:8px 0 4px"><span class="small muted">TRAMA ${g.agenda+1}</span><span class="big" style="color:var(--doom);font-size:1.2rem">${T}<span class="muted">/${t}</span></span><div class="bar"><i style="width:${t?Math.min(100,T/t*100):0}%"></i></div></div>
+  <div class="row between small"><div class="ctr"><button data-a="pdoom" data-v="doom|-1">−</button><span class="v">${g.doom}</span><button data-a="pdoom" data-v="doom|1">+</button><span class="muted">trama</span></div>
+  <div class="ctr"><button data-a="pdoom" data-v="odoom|-1">−</button><span class="v">${g.odoom}</span><button data-a="pdoom" data-v="odoom|1">+</button><span class="muted">altre carte</span></div></div>`:''}
+  ${c?`<div class="small" style="margin-top:6px">Capitolo ${g.act+1} · ${esc(c.n)}${req!=null?` — indizi <b>${gc}</b>/${req}`:''}</div>`:''}</div>`;
+}
+function renderPSheet(m){
+  const ic=CARD[INV_CARD[m.inv]];const d=INV[m.inv]||INV.altro;
+  const ctr=(f,val,max)=>`<div class="ctr"><button data-a="pcnt" data-v="${f}|-1">−</button><span class="v">${val}${max!=null?'<span class="muted">/'+max+'</span>':''}</span><button data-a="pcnt" data-v="${f}|1">+</button></div>`;
+  const defeated=m.dmg>=m.hp||m.hor>=m.san;
+  let pips='';for(let k=0;k<m.maxA;k++)pips+=`<button class="pip ${k<m.used?'used':''}" data-a="ppip" data-v="${k}"></button>`;
+  if(m.inv==='daisy')pips+=`<button class="pip tome ${m.tome?'used':''}" data-a="ptome" title="Azione Tomo"></button>`;
+  const g=pseudo();const myTurnPhase=g.phase===1;
+  let h=renderPStatus();
+  h+=`<div class="card"><div class="row between"><h2>${esc(m.name)}</h2><span class="small muted">${esc(d.c||'')}</span></div>
+  ${m.player?`<div class="small muted">${esc(m.player)}</div>`:''}
+  ${d.sk?`<div class="skills" style="margin-top:6px"><span>Vol <b>${d.sk[0]}</b></span><span>Int <b>${d.sk[1]}</b></span><span>Sco <b>${d.sk[2]}</b></span><span>Agi <b>${d.sk[3]}</b></span></div>`:''}
+  ${defeated&&!m.out?`<div class="note warn small"><b>Sconfitto!</b> Avvisa la guida: trauma fisico se per danni, mentale se per orrori.</div>`:''}
+  <div class="stats">
+    <div class="stat"><div class="k res">Risorse</div>${ctr('res',m.res)}</div>
+    <div class="stat"><div class="k clue">Indizi</div>${ctr('clues',m.clues)}</div>
+    <div class="stat"><div class="k hp">Danni</div>${ctr('dmg',m.dmg,m.hp)}</div>
+    <div class="stat"><div class="k san">Orrori</div>${ctr('hor',m.hor,m.san)}</div>
+  </div></div>`;
+  h+=`<div class="card"><div class="row between"><h3>Il tuo turno</h3><span class="small muted">${myTurnPhase?(m.turnDone?'turno finito':(m.maxA-m.used)+' azioni rimaste'):'non è la Fase degli Investigatori'}</span></div>
+  ${m.turnDone?`<button class="sm ghost" data-a="preopen">Riapri turno</button>`:`<div class="pips">${pips}</div>
+  <div class="row"><button class="sm" data-a="pextra">+1 azione extra</button>${m.inv==='skids'&&!m.skidsUsed?`<button class="sm" data-a="pskids" ${m.res<2?'disabled':''}>2 risorse → +1 azione</button>`:''}<button class="sm primary" data-a="pend">Fine turno</button></div>`}
+  <details style="margin-top:10px"><summary>Azioni disponibili</summary>${ACTIONS_TABLE}</details></div>`;
+  if(ic)h+=`<div class="card"><h3>Capacità</h3><div class="ctext">${cardText(ic)}</div></div>`;
+  else h+=`<div class="card"><h3>Simbolo degli Antichi</h3><div class="small">${esc(d.es)}</div></div>`;
+  h+=`<div class="card"><div class="row between"><h3>Area di minaccia</h3><button class="sm" data-a="pthreatAdd">+ Aggiungi</button></div>`+
+    (m.threat&&m.threat.length?m.threat.map(t=>{const c=t.id?CARD[t.id]:null;return `<div class="inv"><div class="row between"><b>${c?cardName(c):esc(t.n)}</b><button class="sm ghost" data-a="pthreatDel" data-v="${t.u}">Rimuovi</button></div>${c?cardBody(c):(t.note?`<div class="small">${esc(t.note)}</div>`:'')}</div>`}).join(''):'<p class="small muted">Vuota. Aggiungi qui le sventure e le debolezze che restano davanti a te (es. Paura Paralizzante).</p>')+`</div>`;
+  const others=g.invs.filter(v=>v.slot!==PL.slot);
+  if(others.length)h+=`<div class="card"><h3>Compagni</h3>`+others.map(v=>`<div class="row between small" style="padding:5px 0;border-bottom:1px solid var(--line)"><b>${esc(v.name)}</b><span><span style="color:var(--hp)">♥${v.dmg}/${v.hp}</span> <span style="color:var(--san)">✦${v.hor}/${v.san}</span> 💰${v.res} 🔍${v.clues}${v.out?' · eliminato':v.turnDone?' · turno finito':''}</span></div>`).join('')+`</div>`;
+  h+=`<div class="row" style="justify-content:center"><button class="sm ghost" data-a="pmenu">Esci dal tavolo</button></div>`;
+  return h;
+}
+const SLOTS={Mano:2,Arcano:2,Accessorio:1,Corpo:1,Alleato:1};
+function slotSummary(m){
+  const used={};(m.inplay||[]).forEach(e=>{const c=CARD[e.id];if(!c||!c.s)return;c.s.split('.').map(s=>s.trim()).filter(Boolean).forEach(s=>{const k=s.replace(/ x2$/,'');used[k]=(used[k]||0)+(/x2$/.test(s)?2:1);});});
+  return Object.entries(SLOTS).map(([k,n])=>{const u=used[k]||0;return `<span class="slotc ${u>n?'over':''}">${k} ${u}/${n}</span>`}).join('');
+}
+function renderPCards(m){
+  const dig=m.deckMode==='digitale';
+  let h=`<div class="card"><h3>Modalità mazzo</h3><div class="grid2"><div class="opt ${!dig?'on':''}" data-a="pmode" data-v="fisico"><b>Carte fisiche</b><span class="small muted">Mano e mazzo sul tavolo</span></div>
+  <div class="opt ${dig?'on':''}" data-a="pmode" data-v="digitale"><b>Mazzo digitale</b><span class="small muted">Pesca e mano sul telefono</span></div></div></div>`;
+  if(dig)h+=renderDigital(m);
+  h+=`<div class="card"><div class="row between"><h3>In gioco</h3>${!dig?'<button class="sm" data-a="paddPlay">+ Metti in gioco</button>':''}</div><div class="slots">${slotSummary(m)}</div>`;
+  h+=(m.inplay&&m.inplay.length?m.inplay.map(e=>{const c=CARD[e.id];if(!c)return'';
+    return `<div class="inv ${e.ex?'exh':''}"><div class="row between"><b>${cardName(c)}</b><button class="sm ${e.ex?'primary':''}" data-a="pexh" data-v="${e.u}">${e.ex?'Esaurita':'Pronta'}</button></div>
+    ${c.uses?`<div class="row small" style="margin-top:6px"><span class="muted">${esc(c.uses[1])}</span><div class="ctr"><button data-a="puse" data-v="${e.u}|-1">−</button><span class="v">${e.uses}</span><button data-a="puse" data-v="${e.u}|1">+</button></div></div>`:''}
+    ${c.hp||c.san?`<div class="row small" style="margin-top:6px">${c.hp?`<span style="color:var(--hp)">Danni</span><div class="ctr"><button data-a="pad" data-v="${e.u}|d|-1">−</button><span class="v">${e.d||0}/${c.hp}</span><button data-a="pad" data-v="${e.u}|d|1">+</button></div>`:''}
+      ${c.san?`<span style="color:var(--san)">Orrori</span><div class="ctr"><button data-a="pad" data-v="${e.u}|h|-1">−</button><span class="v">${e.h||0}/${c.san}</span><button data-a="pad" data-v="${e.u}|h|1">+</button></div>`:''}</div>`:''}
+    ${(c.hp&&(e.d||0)>=c.hp)||(c.san&&(e.h||0)>=c.san)?'<div class="note warn small">Sconfitto: va negli scarti.</div>':''}
+    <details class="cdet"><summary>Testo</summary>${cardBody(c)}</details>
+    <div class="row" style="margin-top:6px"><button class="sm ghost" data-a="punplay" data-v="${e.u}">${dig?'Scarta':'Togli dal gioco'}</button></div></div>`}).join(''):'<p class="small muted">Nessun supporto in gioco.</p>');
+  h+=`</div>`;
+  h+=`<details><summary>Il tuo mazzo (${m.deckList.length} carte)</summary><p class="small muted">Per le carte acquistate con l'esperienza o i supporti storia (es. Lita Chantler). In modalità digitale le modifiche valgono dalla prossima preparazione del mazzo.</p>`+
+    deckGroups(m.deckList).map(([id,n])=>{const c=CARD[id];return `<div class="row between small" style="padding:4px 0;border-bottom:1px solid var(--line)"><span>${n}× ${cardName(c)} <span class="muted">${c.l?'(liv. '+c.l+')':''}</span></span><button class="sm ghost" data-a="pdeckDel" data-v="${id}">−</button></div>`}).join('')+
+    `<button class="sm" style="margin-top:8px" data-a="pdeckAdd">+ Aggiungi carta</button></details>`;
+  h+=`<details><summary>Consulta le carte</summary><input type="text" id="psearch" placeholder="Cerca per nome, tratto o testo" value="${esc(PL.q||'')}"><div id="presults">${searchResults(PL.q||'',false)}</div></details>`;
+  return h;
+}
+function deckGroups(list){const m={};list.forEach(id=>m[id]=(m[id]||0)+1);return Object.entries(m).map(([id,n])=>[+id,n]).sort((a,b)=>a[0]-b[0]);}
+function searchResults(q,pick){
+  q=(q||'').toLowerCase().trim();
+  const list=CARDS.filter(c=>c.t!=='investigator'&&(!q||(c.n+' '+(c.tr||'')+' '+(c.tx||'')).toLowerCase().includes(q))).slice(0,q?40:15);
+  return list.map(c=>`<div class="inv"><div class="row between"><b>${cardName(c)}</b>${pick?`<button class="sm" data-a="${pick}" data-v="${c.id}">Scegli</button>`:''}</div>${cardBody(c)}</div>`).join('')||'<p class="small muted">Nessuna carta trovata.</p>';
+}
+function renderDigital(m){
+  const d=m.deck;
+  if(!d)return `<div class="card"><h3>Mazzo digitale</h3><p class="small">Il telefono mescola il tuo mazzo (${m.deckList.length} carte) e pesca la mano iniziale di 5: le debolezze pescate vengono messe da parte e sostituite.</p><button class="primary" style="width:100%" data-a="pprep">Mescola e pesca la mano iniziale</button></div>`;
+  let h=`<div class="card"><div class="row between"><h3>Mano (${d.hand.length})</h3><span class="small muted">Mazzo ${d.draw.length} · Scarti ${d.discard.length}</span></div>`;
+  if(d.mull)h+=`<div class="note small">Mulligan: seleziona le carte da sostituire, poi conferma (una sola volta).</div>`;
+  h+=d.hand.map((id,k)=>{const c=CARD[id];if(!c)return'';const sel=d.mull&&d.sel&&d.sel.includes(k);
+    return `<div class="inv ${sel?'selc':''}"><div class="row between"><b>${cardName(c)}</b><span class="small muted">${c.c!=null?'Costo '+c.c:''}</span></div>
+    <div class="small muted">${esc(TYPE_IT[c.t]||'')}${c.s?' · '+esc(c.s):''} ${icons(c)}</div>
+    <details class="cdet"><summary>Testo</summary>${cardBody(c)}</details>
+    <div class="row" style="margin-top:6px">${d.mull?`<button class="sm ${sel?'primary':''}" data-a="pmsel" data-v="${k}">${sel?'Da sostituire':'Sostituisci'}</button>`:
+      `${c.t==='asset'||c.t==='event'?`<button class="sm primary" data-a="pplay" data-v="${k}">Gioca${c.c?' ('+c.c+')':''}</button>`:''}${c.ic?`<button class="sm" data-a="pcommit" data-v="${k}">Investi</button>`:''}<button class="sm ghost" data-a="pdiscard" data-v="${k}">Scarta</button>`}</div></div>`}).join('');
+  h+=d.mull?`<button class="primary" style="width:100%;margin-top:8px" data-a="pmconfirm">Conferma la mano</button>`:
+    `<div class="row" style="margin-top:8px"><button class="primary grow" data-a="pdraw">Pesca 1 carta</button><button class="ghost" data-a="preset">Rifai il mazzo</button></div>`;
+  h+=`</div>`;
+  if(d.discard.length)h+=`<details><summary>Pila degli scarti (${d.discard.length})</summary>`+d.discard.slice().reverse().map((id,k)=>{const c=CARD[id];const idx=d.discard.length-1-k;return `<div class="row between small" style="padding:4px 0;border-bottom:1px solid var(--line)"><span>${cardName(c)}</span><button class="sm ghost" data-a="pfromdisc" data-v="${idx}">In mano</button></div>`}).join('')+`</details>`;
+  return h;
+}
+
+/* ---------- azioni giocatore ---------- */
+function drawOne(m){
+  const d=m.deck;let horror=false;
+  if(!d.draw.length){if(!d.discard.length){toast('Mazzo e scarti vuoti');return;}d.draw=shuffle(d.discard);d.discard=[];horror=true;}
+  const id=d.draw.shift();const c=CARD[id];
+  if(horror){m.hor=(m.hor||0)+1;toast('Mazzo vuoto: rimescolati gli scarti, subisci 1 orrore');}
+  if(c&&c.wk&&c.t!=='event'){PL.weak=id;setTimeout(()=>openWeak(id),50);}else d.hand.push(id);
+}
+function openWeak(id){const c=CARD[id];
+  openModal(`<h2 style="margin-bottom:6px;color:#f0b3ab">Debolezza!</h2><b>${cardName(c)}</b>${cardBody(c)}
+  <p class="small muted">Risolvi la Rivelazione, poi decidi dove va.</p>
+  <div class="opts"><button class="primary" data-a="pweak" data-v="threat">Nella mia area di minaccia</button><button data-a="pweak" data-v="discard">Negli scarti</button><button data-a="pweak" data-v="hand">In mano</button></div>`);}
+Object.assign(H,{
+  ptab(e){PL.tab=e.dataset.v;render();window.scrollTo(0,0);},
+  pleave(){leaveTable();},
+  prefresh(){refetch();},
+  pmenu(){openModal(`<h2 style="margin-bottom:10px">Tavolo online</h2><p class="small muted">Codice: <b>${esc(PL.code)}</b></p><div class="opts"><button data-a="prefresh2">Aggiorna</button><button class="danger" data-a="pleave">Esci dal tavolo</button><button class="ghost" data-a="close">Chiudi</button></div>`);},
+  prefresh2(){closeModal();refetch();},
+  pdoom(e){const [f,d]=e.dataset.v.split('|');pdoom(f,+d);},
+  pcnt(e){const [f,d]=e.dataset.v.split('|');pmut(m=>{m[f]=Math.max(0,(m[f]||0)+ +d);});},
+  ppip(e){const k=+e.dataset.v;pmut(m=>{m.used=k<m.used?k:k+1;});},
+  ptome(){pmut(m=>{m.tome=m.tome?0:1;});},
+  pextra(){pmut(m=>{m.maxA++;});},
+  pskids(){pmut(m=>{if(m.res<2)return;m.res-=2;m.maxA++;m.skidsUsed=true;});},
+  pend(){pmut(m=>{m.turnDone=true;});},
+  preopen(){pmut(m=>{m.turnDone=false;});},
+  pthreatAdd(){openModal(`<h2 style="margin-bottom:8px">Area di minaccia</h2><label class="f">Nome della carta</label><input type="text" id="thrN" placeholder="es. Paura Paralizzante"><label class="f">Nota (facoltativa)</label><input type="text" id="thrNote" placeholder="es. a fine turno prova di Volontà (3)">
+    <div class="navbtns"><button class="ghost" data-a="close">Annulla</button><button class="primary" data-a="pthreatOk">Aggiungi</button></div>`);},
+  pthreatOk(){const n=document.getElementById('thrN').value.trim(),note=document.getElementById('thrNote').value.trim();if(!n)return;closeModal();pmut(m=>{m.threat=(m.threat||[]).concat([{u:uid(),n,note}]);});},
+  pthreatDel(e){pmut(m=>{const t=m.threat.find(x=>x.u===e.dataset.v);m.threat=m.threat.filter(x=>x.u!==e.dataset.v);if(t&&t.id&&m.deck&&m.deckMode==='digitale')m.deck.discard.push(t.id);});},
+  pmode(e){pmut(m=>{m.deckMode=e.dataset.v;});},
+  paddPlay(){const m=me();const ids=[...new Set(m.deckList)].filter(id=>CARD[id]&&CARD[id].t==='asset');
+    openModal(`<h2 style="margin-bottom:8px">Metti in gioco</h2><label class="row small" style="gap:8px;margin-bottom:8px"><input type="checkbox" id="payCost" checked> Paga il costo con le tue risorse (ne hai ${m.res})</label>`+
+      ids.map(id=>{const c=CARD[id];return `<div class="inv"><div class="row between"><b>${cardName(c)}</b><button class="sm primary" data-a="pputPlay" data-v="${id}">Gioca (${c.c||0})</button></div><div class="small muted">${esc(cardLine(c))}</div></div>`}).join('')+
+      `<details><summary>Altre carte</summary><input type="text" id="pickq" placeholder="Cerca"><div id="pickres">${searchResults('',false)}</div></details><div class="navbtns"><button class="ghost" data-a="close" style="flex:1">Chiudi</button></div>`);
+    const q=document.getElementById('pickq');q.addEventListener('input',()=>{document.getElementById('pickres').innerHTML=searchResults(q.value,'pputPlay');});document.getElementById('pickres').innerHTML=searchResults('','pputPlay');},
+  pputPlay(e){const id=+e.dataset.v,c=CARD[id];const pay=document.getElementById('payCost');const doPay=pay?pay.checked:true;const m=me();
+    if(doPay&&(c.c||0)>m.res){toast('Risorse insufficienti: servono '+c.c,true);return;}
+    closeModal();pmut(m=>{if(doPay)m.res-=(c.c||0);m.inplay=(m.inplay||[]).concat([{u:uid(),id,uses:c.uses?c.uses[0]:null,d:0,h:0,ex:false}]);});},
+  pexh(e){pmut(m=>{const x=m.inplay.find(y=>y.u===e.dataset.v);if(x)x.ex=!x.ex;});},
+  puse(e){const [u,d]=e.dataset.v.split('|');pmut(m=>{const x=m.inplay.find(y=>y.u===u);if(x)x.uses=Math.max(0,(x.uses||0)+ +d);});},
+  pad(e){const [u,k,d]=e.dataset.v.split('|');pmut(m=>{const x=m.inplay.find(y=>y.u===u);if(x)x[k]=Math.max(0,(x[k]||0)+ +d);});},
+  punplay(e){pmut(m=>{const x=m.inplay.find(y=>y.u===e.dataset.v);m.inplay=m.inplay.filter(y=>y.u!==e.dataset.v);if(x&&m.deckMode==='digitale'&&m.deck)m.deck.discard.push(x.id);});},
+  pdeckDel(e){const id=+e.dataset.v;pmut(m=>{const i=m.deckList.indexOf(id);if(i>=0)m.deckList.splice(i,1);});},
+  pdeckAdd(){openModal(`<h2 style="margin-bottom:8px">Aggiungi al mazzo</h2><input type="text" id="addq" placeholder="Cerca una carta"><div id="addres"></div><div class="navbtns"><button class="ghost" data-a="close" style="flex:1">Chiudi</button></div>`);
+    const q=document.getElementById('addq'),r=document.getElementById('addres');r.innerHTML=searchResults('','pdeckPick');q.addEventListener('input',()=>{r.innerHTML=searchResults(q.value,'pdeckPick');});},
+  pdeckPick(e){const id=+e.dataset.v;pmut(m=>{m.deckList=m.deckList.concat([id]);});toast(CARD[id].n+' aggiunta al mazzo');},
+  pprep(){pmut(m=>{const all=shuffle(m.deckList.slice());const hand=[],aside=[];
+    while(hand.length<5&&all.length){const id=all.shift();if(CARD[id]&&CARD[id].wk)aside.push(id);else hand.push(id);}
+    m.deck={draw:all,hand,aside,discard:[],mull:true,sel:[]};});},
+  pmsel(e){const k=+e.dataset.v;pmut(m=>{const s=m.deck.sel||[];m.deck.sel=s.includes(k)?s.filter(x=>x!==k):s.concat([k]);});},
+  pmconfirm(){pmut(m=>{const d=m.deck,sel=d.sel||[];const removed=d.hand.filter((_,k)=>sel.includes(k));d.hand=d.hand.filter((_,k)=>!sel.includes(k));
+    const aside=d.aside||[];while(d.hand.length<5&&d.draw.length){const id=d.draw.shift();if(CARD[id]&&CARD[id].wk)aside.push(id);else d.hand.push(id);}
+    d.draw=shuffle(d.draw.concat(removed,aside));d.aside=[];d.mull=false;d.sel=[];});},
+  pdraw(){pmut(m=>drawOne(m));},
+  preset(){openModal(`<h2 style="margin-bottom:8px">Rifare il mazzo?</h2><p class="small">Mano, mazzo e scarti digitali vengono azzerati (le carte in gioco restano). Usalo a inizio scenario.</p><div class="navbtns"><button data-a="close">No</button><button class="primary" data-a="presetOk">Rifai</button></div>`);},
+  presetOk(){closeModal();pmut(m=>{m.deck=null;});},
+  pweak(e){const id=PL.weak;if(id==null)return;PL.weak=null;closeModal();const w=e.dataset.v;
+    pmut(m=>{if(w==='threat')m.threat=(m.threat||[]).concat([{u:uid(),id,n:CARD[id].n}]);else if(w==='discard')m.deck.discard.push(id);else m.deck.hand.push(id);});},
+  pplay(e){const k=+e.dataset.v;const m=me();const id=m.deck.hand[k],c=CARD[id];
+    if((c.c||0)>m.res){toast('Risorse insufficienti: servono '+c.c,true);return;}
+    pmut(m=>{m.deck.hand.splice(k,1);m.res-=(c.c||0);if(c.t==='asset')m.inplay=(m.inplay||[]).concat([{u:uid(),id,uses:c.uses?c.uses[0]:null,d:0,h:0,ex:false}]);else m.deck.discard.push(id);});
+    if(c.t==='event')toast(c.n+': risolvi l\'effetto, poi va negli scarti');},
+  pcommit(e){const k=+e.dataset.v;pmut(m=>{const id=m.deck.hand.splice(k,1)[0];m.deck.discard.push(id);});},
+  pdiscard(e){const k=+e.dataset.v;const m=me();const c=CARD[m.deck.hand[k]];if(c&&c.wk){toast('Le debolezze non si possono scartare volontariamente dalla mano',true);return;}
+    pmut(m=>{const id=m.deck.hand.splice(k,1)[0];m.deck.discard.push(id);});},
+  pfromdisc(e){const i=+e.dataset.v;pmut(m=>{const id=m.deck.discard.splice(i,1)[0];m.deck.hand.push(id);});},
+  pjoin(){const v=document.getElementById('joinCode').value;joinTable(v);},
+  mkTable(){createTable();},
+  tableMenu(){closeModal();openTable();},
+  copyLink(e){const t=joinLink(e.dataset.v);try{navigator.clipboard.writeText(t).then(()=>toast('Link copiato'),()=>toast(t));}catch(_){toast(t);}},
+  unlink(){openModal(`<h2 style="margin-bottom:8px">Scollegare il tavolo?</h2><p class="small">La partita resta su questo dispositivo ma smette di sincronizzarsi; i telefoni dei giocatori non riceveranno più aggiornamenti.</p><div class="navbtns"><button data-a="close">No</button><button class="danger" data-a="unlinkOk">Scollega</button></div>`);},
+  unlinkOk(){closeModal();const g=S.game;delete g.online;log(g,'Tavolo online scollegato');save();ensureConn();render();}
+});
+document.addEventListener('input',e=>{if(e.target.id==='psearch'){PL.q=e.target.value;const r=document.getElementById('presults');if(r)r.innerHTML=searchResults(PL.q,false);}});
+
+/* ---------- aggancio all'app della guida ---------- */
+const CARDS_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="11" height="15" rx="2"/><path d="M14 7.5l4.5 1.2a2 2 0 0 1 1.4 2.4l-2.6 9.6a2 2 0 0 1-2.4 1.4L9 20.6"/></svg>';
+const _render=render;
+render=function(){
+  if(PL.on){renderPlayer();return;}
+  _render();
+  if(!S.game&&S.tab==='round'){const app=document.getElementById('app');
+    app.insertAdjacentHTML('afterbegin',`<div class="card"><h3>Sei un giocatore?</h3><p class="small muted">Inserisci il codice che ti ha dato la guida.</p><div class="row"><input type="text" id="joinCode" class="grow" style="flex:1;width:auto;text-transform:uppercase" maxlength="8" placeholder="Codice"><button class="primary" data-a="pjoin">Entra</button></div></div>`);}
+  if(S.game&&S.tab==='team'&&S.game.online)decorateTeam();
+  ensureConn();paintConn();
+};
+function decorateTeam(){
+  const cards=document.querySelectorAll('#app > .card');const g=S.game;const ord=order(g);
+  ord.forEach((i,k)=>{const el=cards[k];const r=REMOTE['s'+i];if(!el||!r)return;
+    let h=`<div class="note small" style="margin-top:8px"><b>Dal telefono:</b> ${r.deckMode==='digitale'?`mazzo digitale${r.deck?` · mano ${r.deck.hand.length} · mazzo ${r.deck.draw.length}`:' (non ancora mescolato)'}`:'carte fisiche'}`;
+    if(r.inplay&&r.inplay.length)h+=`<br>In gioco: `+r.inplay.map(e=>{const c=CARD[e.id];return c?esc(c.n)+(e.uses!=null?` (${e.uses})`:'')+(e.ex?' [esaurita]':''):''}).join(', ');
+    if(r.threat&&r.threat.length)h+=`<br>Area di minaccia: `+r.threat.map(t=>esc(t.id&&CARD[t.id]?CARD[t.id].n:t.n)).join(', ');
+    el.insertAdjacentHTML('beforeend',h+'</div>');});
+}
+const _mut=mut;
+mut=function(fn){const before=S.game?clone(S.game):null;_mut(fn);syncHost(before,S.game);};
+H.undo=function(){if(!UNDO.length)return;const before=clone(S.game);S.game=JSON.parse(UNDO.pop());save();render();syncHost(before,S.game);};
+H.draw=function(){
+  if(S.drawing)return;const g=PL.on?pseudo():G();const bag=bagOf(g?g.scen:S.setup.scen,g?g.diff:S.setup.diff);
+  const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  S.drawing=true;render();const w=document.getElementById('bagwrap');if(w)w.classList.add('shaking');
+  setTimeout(()=>{S.drawing=false;const t=bag[Math.floor(Math.random()*bag.length)];S.draw=t;S.justDrew=true;save();render();
+    const auth=PL.on?PL.code:(S.game&&S.game.online?S.game.online.token:null);
+    if(auth){OWN_DRAW=true;const m=PL.on?me():null;enqueue([['ah_draw',{p_auth:auth,p_tok:t,p_who:PL.on?(m.player||m.name):'La guida'}]]);}
+  },reduce?150:850);
+};
+const _openMenu=openMenu;
+openMenu=function(){_openMenu();const g=G();if(!g)return;
+  const opts=document.querySelector('#sheet .opts');if(opts)opts.insertAdjacentHTML('afterbegin',`<button class="${g.online?'':'primary'}" data-a="tableMenu">${g.online?'Tavolo online: codici dei giocatori':'Tavolo online…'}</button>`);};
+(function initOnline(){
+  let code=null;try{code=new URLSearchParams(location.search).get('codice');}catch(e){}
+  if(!code){try{code=localStorage.getItem('ahlcg-codice');}catch(e){}}
+  const ver=document.getElementById('ver');if(ver&&!document.getElementById('conn'))ver.insertAdjacentHTML('afterend','<span id="conn" class="conn" style="display:none"></span>');
+  if(code)joinTable(code);else render();
+})();
+H.menu=function(){if(PL.on)H.pmenu();else openMenu();};
+
 </script>
 </body>
 </html>

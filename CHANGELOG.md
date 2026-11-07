@@ -2,6 +2,15 @@
 
 Numerazione: si parte da 0.0.5 e ogni modifica aumenta di 0.0.1. La 1.0.0 sarà la prima versione ufficiale.
 
+## [0.0.7] — 2026-11-07
+- **Tavolo online**: dalla guida (menu ☰ → Tavolo online) si crea un tavolo su Supabase con un codice e un QR per ogni giocatore.
+- **Schermata giocatore** (apri il link o inserisci il codice): scheda dell'investigatore con risorse, indizi, danni, orrori, azioni del turno, capacità, area di minaccia e compagni; destino della trama modificabile.
+- **Carte**: supporti in gioco con utilizzi (munizioni, cariche, scorte…), danni/orrori sugli alleati, esaurita/pronta, conteggio degli slot; consultazione di tutte le carte giocatore del Set Base in italiano; modifica del mazzo.
+- **Mazzo digitale facoltativo**: mescola, mano iniziale con debolezze messe da parte, mulligan, pesca (mazzo vuoto → rimescola + 1 orrore), gioca pagando il costo, investi, scarta, debolezze pescate.
+- **Sacchetto del caos condiviso**: chiunque peschi, gli altri vedono l'avviso.
+- Sincronizzazione in tempo reale; «Annulla» della guida annulla solo le proprie modifiche.
+- Backend separato da Four Against (tabelle e funzioni `ah_`), schema in `supabase/schema.sql`.
+
 ## [0.0.6] — 2026-11-07
 - Numero di versione mostrato in alto, accanto al titolo (tolto da menu e Regole).
 
